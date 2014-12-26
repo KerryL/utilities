@@ -30,12 +30,35 @@ const std::string ConfigFile::commentCharacter	= "#";
 
 //==========================================================================
 // Class:			ConfigFile
+// Function:		~ConfigFile
+//
+// Description:		Destructor for ConfigFile class.
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+ConfigFile::~ConfigFile()
+{
+	ConfigItemMap::iterator it;
+	for (it = configItems.begin(); it != configItems.end(); it++)
+		delete it->second;
+}
+
+//==========================================================================
+// Class:			ConfigFile
 // Function:		ReadConfiguration
 //
 // Description:		Reads the configuration from file.
 //
 // Input Arguments:
-//		fileName	= std::string
+//		fileName	= const std::string&
 //
 // Output Arguments:
 //		None
@@ -44,7 +67,7 @@ const std::string ConfigFile::commentCharacter	= "#";
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::ReadConfiguration(std::string fileName)
+bool ConfigFile::ReadConfiguration(const std::string &fileName)
 {
 	if (configItems.size() == 0)
 		BuildConfigItems();
@@ -157,14 +180,14 @@ void ConfigFile::SplitFieldFromData(const std::string &line,
 void ConfigFile::ProcessConfigItem(const std::string &field, const std::string &data)
 {
 	if (configItems.count(field) > 0)
-		(*configItems.find(field)).second.AssignValue(data);
+		(*configItems.find(field)).second->AssignValue(data);
 	else
 		outStream << "Unknown config field: " << field << std::endl;
 }
 
 //==========================================================================
-// Class:			ConfigItem
-// Function:		InterpretBooleanData
+// Class:			ConfigFile
+// Function:		BoolReader
 //
 // Description:		Reads the specified data into boolean form.  Interprets true
 //					values when data is "1" or empty (boolean fields should be
@@ -175,69 +198,20 @@ void ConfigFile::ProcessConfigItem(const std::string &field, const std::string &
 //		data	= const std::string&
 //
 // Output Arguments:
-//		None
+//		value	= bool&
 //
 // Return Value:
-//		bool
+//		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::ConfigItem::InterpretBooleanData(const std::string &data) const
+bool ConfigFile::BoolReader(const std::string &data, bool &value)
 {
-	return data.compare("1") == 0 || data.empty();
+	value = data.compare("1") == 0 || data.empty();
+	return true;
 }
 
 //==========================================================================
-// Class:			ConfigItem
-// Function:		AssignValue
-//
-// Description:		Assigns the value of the data string to the appropriate
-//					dereferenced pointed, based on the this item's type.
-//
-// Input Arguments:
-//		dataString	= const std::string&
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-void ConfigFile::ConfigItem::AssignValue(const std::string &dataString)
-{
-	std::stringstream ss(dataString);
-	if (type == TypeBool)
-		*data.b = InterpretBooleanData(dataString);
-	else if (type == TypeUnsignedChar)
-		ss >> *data.uc;
-	else if (type == TypeChar)
-		ss >> *data.c;
-	else if (type == TypeUnsignedShort)
-		ss >> *data.us;
-	else if (type == TypeShort)
-		ss >> *data.s;
-	else if (type == TypeUnsignedInt)
-		ss >> *data.ui;
-	else if (type == TypeInt)
-		ss >> *data.i;
-	else if (type == TypeUnsignedLong)
-		ss >> *data.ul;
-	else if (type == TypeLong)
-		ss >> *data.l;
-	else if (type == TypeFloat)
-		ss >> *data.f;
-	else if (type == TypeDouble)
-		ss >> *data.d;
-	else if (type == TypeString)
-		ss >> *st;
-	else if (type == TypeStringVector)
-		sv->push_back(dataString);
-	else
-		assert(false);
-}
-
-//==========================================================================
-// Class:			ConfigItem
+// Class:			ConfigFile
 // Function:		StripCarriageReturn
 //
 // Description:		Removes the '\r' from the end of the string, in case

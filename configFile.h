@@ -8,7 +8,6 @@
 #define CONFIG_FILE_H_
 
 // Standard C++ headers
-#include <cstdio>
 #include <string>
 #include <iostream>
 #include <map>
@@ -24,82 +23,56 @@ struct ConfigFile
 public:
 	ConfigFile(std::ostream &outStream = std::cout)
 		: outStream(outStream) {};
-	virtual ~ConfigFile() {};
+	virtual ~ConfigFile();
 
-	bool ReadConfiguration(std::string fileName);
+	bool ReadConfiguration(const std::string &fileName);
 	template <typename T>
-	bool WriteConfiguration(std::string fileName,
-		std::string field, T value);
+	bool WriteConfiguration(const std::string &fileName,
+		const std::string &field, const T &value);
+		
+	template <typename T>
+	static bool VectorReader(const std::string &s, std::vector<T> &v);
+	static bool BoolReader(const std::string &s, bool &value);
 
 protected:
 	std::ostream& outStream;
-
-	template <typename T>
-	void AddConfigItem(const std::string &key, T& data);
+	
 	virtual void BuildConfigItems(void) = 0;
 	virtual void AssignDefaults(void) = 0;
 
 	virtual bool ConfigIsOK(void) = 0;
-
-	class ConfigItem
+	
+	class ConfigItemBase
 	{
 	public:
-		enum Type
-		{
-			TypeBool,
-			TypeUnsignedChar,
-			TypeChar,
-			TypeUnsignedShort,
-			TypeShort,
-			TypeUnsignedInt,
-			TypeInt,
-			TypeUnsignedLong,
-			TypeLong,
-			TypeFloat,
-			TypeDouble,
-			TypeString,
-			TypeStringVector
-		};
+		virtual ~ConfigItemBase() {};
+		virtual bool AssignValue(const std::string &/*data*/) {return false;};//= 0;
+		
+	protected:
+		ConfigItemBase() {};
+	};
 
-		ConfigItem(bool &b) : type(TypeBool) { data.b = &b; };
-		ConfigItem(unsigned char &uc) : type(TypeUnsignedChar) { data.uc = &uc; };
-		ConfigItem(char &c) : type(TypeChar) { data.c = &c; };
-		ConfigItem(unsigned short &us) : type(TypeUnsignedShort) { data.us = &us; };
-		ConfigItem(short &s) : type(TypeShort) { data.s = &s; };
-		ConfigItem(unsigned int &ui) : type(TypeUnsignedInt) { data.ui = &ui; };
-		ConfigItem(int &i) : type(TypeInt) { data.i = &i; };
-		ConfigItem(unsigned long &ul) : type(TypeUnsignedLong) { data.ul = &ul; };
-		ConfigItem(long &l) : type(TypeLong) { data.l = &l; };
-		ConfigItem(float &f) : type(TypeFloat) { data.f = &f; };
-		ConfigItem(double &d) : type(TypeDouble) { data.d = &d; };
-		ConfigItem(std::string &st) : type(TypeString) { this->st = &st; };
-		ConfigItem(std::vector<std::string> &sv) : type(TypeStringVector) { this->sv = &sv; };
+	template <typename T>
+	class ConfigItem : public ConfigItemBase
+	{
+	public:
+		typedef bool (*ReadFunction)(const std::string &s, T &value);
+		
+		ConfigItem(T &value, ReadFunction reader) : ConfigItemBase(),
+			value(value), reader(reader) {};
+		virtual ~ConfigItem() {};
 
-		void AssignValue(const std::string &data);
+		virtual bool AssignValue(const std::string &data);
 
 	private:
-		const Type type;
-
-		bool InterpretBooleanData(const std::string &dataString) const;
-
-		union
-		{
-			bool* b;
-			unsigned char* uc;
-			char* c;
-			unsigned short* us;
-			short* s;
-			unsigned int* ui;
-			int* i;
-			unsigned long* ul;
-			long* l;
-			float* f;
-			double* d;
-		} data;
-
-		std::string* st;
-		std::vector<std::string>* sv;
+		T &value;
+		ReadFunction reader;
 	};
+	
+	template <typename T>
+	void AddConfigItem(const std::string &key, T& data);
+	template <typename T>
+	void AddConfigItem(const std::string &key, T& data, typename ConfigItem<T>::ReadFunction reader);
 
 	template <typename T>
 	std::string GetKey(const T& i) const { return (*keyMap.find((void* const)&i)).second; }
@@ -110,8 +83,12 @@ private:
 	void StripCarriageReturn(std::string &s) const;
 	void SplitFieldFromData(const std::string &line, std::string &field, std::string &data);
 	void ProcessConfigItem(const std::string &field, const std::string &data);
+	
+	template <typename T>
+	static bool GenericReader(const std::string &s, T &value);
 
-	std::map<std::string, ConfigItem> configItems;
+	typedef std::map<std::string, ConfigItemBase*> ConfigItemMap;
+	ConfigItemMap configItems;
 	std::map<void* const, std::string> keyMap;
 };
 
@@ -135,12 +112,37 @@ private:
 template <typename T>
 void ConfigFile::AddConfigItem(const std::string &key, T& data)
 {
-	ConfigItem item(data);
+	AddConfigItem(key, data, GenericReader<T>);
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		AddConfigItem
+//
+// Description:		Adds the specified field key and data reference to the list.
+//
+// Input Arguments:
+//		key		= const std::string&
+//		data	= T&
+//		reader	= ConfigItem<T>::ReadFunction
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+template <typename T>
+void ConfigFile::AddConfigItem(const std::string &key, T& data,
+	typename ConfigItem<T>::ReadFunction reader)
+{
+	ConfigItem<T> *item = new ConfigItem<T>(data, reader);
 	bool success = configItems.insert(std::make_pair(key, item)).second;
-	assert(success);
+	assert(success && "failed to add item to forward map");// TODO:  Do something better here
 
 	success = keyMap.insert(std::make_pair((void*)&data, key)).second;
-	assert(success);
+	assert(success && "failed to add item to reverse map");// TODO:  Do something better here
 }
 
 //==========================================================================
@@ -151,9 +153,9 @@ void ConfigFile::AddConfigItem(const std::string &key, T& data)
 //					existing whitespace, comments, formatting, etc.
 //
 // Input Arguments:
-//		fileName	= std::string
-//		field		= std::string
-//		value		= T
+//		fileName	= const std::string&
+//		field		= const std::string&
+//		value		= const T&
 //
 // Output Arguments:
 //		None
@@ -163,8 +165,8 @@ void ConfigFile::AddConfigItem(const std::string &key, T& data)
 //
 //==========================================================================
 template <typename T>
-bool ConfigFile::WriteConfiguration(std::string fileName,
-	std::string field, T value)
+bool ConfigFile::WriteConfiguration(const std::string &fileName,
+	const std::string &field, const T &value)
 {
 	std::ifstream inFile(fileName.c_str(), std::ios::in);
 	if (!inFile.is_open() || !inFile.good())
@@ -232,6 +234,81 @@ bool ConfigFile::WriteConfiguration(std::string fileName,
 	}
 
 	return true;
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		GenericReader
+//
+// Description:		Generic string-to-type function for reading config data.
+//
+// Input Arguments:
+//		s	= const std::string&
+//
+// Output Arguments:
+//		value	= const T&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+template <typename T>
+bool ConfigFile::GenericReader(const std::string &s, T &value)
+{
+	std::stringstream ss(s);
+	return (ss >> value).fail();
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		VectorReader
+//
+// Description:		Generic string-to-type function for reading config data and
+//					adding each new entry to a vector.
+//
+// Input Arguments:
+//		s	= const std::string&
+//
+// Output Arguments:
+//		v	= const std::vector<T>&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+template <typename T>
+bool ConfigFile::VectorReader(const std::string &s, std::vector<T> &v)
+{
+	T value;
+	std::stringstream ss(s);
+	if ((ss >> value).fail())
+		return false;
+		
+	v.push_back(value);
+	return true;
+}
+
+//==========================================================================
+// Class:			ConfigItem
+// Function:		AssignValue
+//
+// Description:		Assigns the value of the data string to the appropriate
+//					dereferenced pointed, based on the this item's type.
+//
+// Input Arguments:
+//		dataString	= const std::string&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+template <typename T>
+bool ConfigFile::ConfigItem<T>::AssignValue(const std::string &dataString)
+{
+	return reader(dataString, value);
 }
 
 #endif// CONFIG_FILE_H_
