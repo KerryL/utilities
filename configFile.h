@@ -17,8 +17,9 @@
 #include <fstream>
 #include <vector>
 #include <errno.h>
+#include <typeinfo>
 
-struct ConfigFile
+class ConfigFile
 {
 public:
 	ConfigFile(std::ostream &outStream = std::cout)
@@ -29,10 +30,6 @@ public:
 	template <typename T>
 	bool WriteConfiguration(const std::string &fileName,
 		const std::string &field, const T &value);
-		
-	template <typename T>
-	static bool VectorReader(const std::string &s, std::vector<T> &v);
-	static bool BoolReader(const std::string &s, bool &value);
 
 protected:
 	std::ostream& outStream;
@@ -69,13 +66,27 @@ protected:
 		ReadFunction reader;
 	};
 	
+	void AddConfigItem(const std::string &key, bool& data);
+	void AddConfigItem(const std::string &key, std::string& data);
+	void AddConfigItem(const std::string &key, std::vector<std::string>& data);
 	template <typename T>
 	void AddConfigItem(const std::string &key, T& data);
 	template <typename T>
-	void AddConfigItem(const std::string &key, T& data, typename ConfigItem<T>::ReadFunction reader);
+	void AddConfigItem(const std::string &key, std::vector<T>& data);
+	template <typename T>
+	void AddConfigItem(const std::string &key, T& data,
+		typename ConfigItem<T>::ReadFunction reader);
 
 	template <typename T>
 	std::string GetKey(const T& i) const { return (*keyMap.find((void* const)&i)).second; }
+	
+	static bool BoolReader(const std::string &s, bool &value);
+	static bool StringReader(const std::string &s, std::string &value);
+	static bool StringVectorReader(const std::string &s, std::vector<std::string> &value);
+	template <typename T>
+	static bool GenericReader(const std::string &s, T &value);
+	template <typename T>
+	static bool VectorReader(const std::string &s, std::vector<T> &v);
 
 private:
 	static const std::string commentCharacter;
@@ -83,9 +94,6 @@ private:
 	void StripCarriageReturn(std::string &s) const;
 	void SplitFieldFromData(const std::string &line, std::string &field, std::string &data);
 	void ProcessConfigItem(const std::string &field, const std::string &data);
-	
-	template <typename T>
-	static bool GenericReader(const std::string &s, T &value);
 
 	typedef std::map<std::string, ConfigItemBase*> ConfigItemMap;
 	ConfigItemMap configItems;
@@ -113,6 +121,29 @@ template <typename T>
 void ConfigFile::AddConfigItem(const std::string &key, T& data)
 {
 	AddConfigItem(key, data, GenericReader<T>);
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		AddConfigItem
+//
+// Description:		Adds the specified field key and data reference to the list.
+//
+// Input Arguments:
+//		key		= const std::string&
+//		data	= std::vector<T>&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+template <typename T>
+void ConfigFile::AddConfigItem(const std::string &key, std::vector<T>& data)
+{
+	AddConfigItem(key, data, VectorReader<T>);
 }
 
 //==========================================================================
@@ -256,7 +287,13 @@ template <typename T>
 bool ConfigFile::GenericReader(const std::string &s, T &value)
 {
 	std::stringstream ss(s);
-	return (ss >> value).fail();
+	if (typeid(T) == typeid(std::string))
+	{
+		// TODO:  getline or something here so we don't break on/loose spaces
+	}
+	// TODO:  Would be nice to recognize vectors and bools here, too, so we don't have to specify readers for these
+	
+	return !(ss >> value).fail();
 }
 
 //==========================================================================
@@ -280,8 +317,7 @@ template <typename T>
 bool ConfigFile::VectorReader(const std::string &s, std::vector<T> &v)
 {
 	T value;
-	std::stringstream ss(s);
-	if ((ss >> value).fail())
+	if (!GenericReader(s, value))
 		return false;
 		
 	v.push_back(value);

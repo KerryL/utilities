@@ -108,6 +108,72 @@ bool ConfigFile::ReadConfiguration(const std::string &fileName)
 
 //==========================================================================
 // Class:			ConfigFile
+// Function:		AddConfigItem
+//
+// Description:		Adds the specified field key and data reference to the list.
+//
+// Input Arguments:
+//		key		= const std::string&
+//		data	= bool&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ConfigFile::AddConfigItem(const std::string &key, bool& data)
+{
+	AddConfigItem(key, data, BoolReader);
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		AddConfigItem
+//
+// Description:		Adds the specified field key and data reference to the list.
+//
+// Input Arguments:
+//		key		= const std::string&
+//		data	= std::string&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ConfigFile::AddConfigItem(const std::string &key, std::string& data)
+{
+	AddConfigItem(key, data, StringReader);
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		AddConfigItem
+//
+// Description:		Adds the specified field key and data reference to the list.
+//
+// Input Arguments:
+//		key		= const std::string&
+//		data	= std::vector<std::string>&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void ConfigFile::AddConfigItem(const std::string &key, std::vector<std::string>& data)
+{
+	AddConfigItem(key, data, StringVectorReader);
+}
+
+//==========================================================================
+// Class:			ConfigFile
 // Function:		SplitFieldFromData
 //
 // Description:		Splits the current line into a field portion and a data
@@ -207,6 +273,53 @@ void ConfigFile::ProcessConfigItem(const std::string &field, const std::string &
 bool ConfigFile::BoolReader(const std::string &data, bool &value)
 {
 	value = data.compare("1") == 0 || data.empty();
+	return true;
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		StringReader
+//
+// Description:		Reads the specified data into another string.
+//
+// Input Arguments:
+//		data	= const std::string&
+//
+// Output Arguments:
+//		value	= std::string&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+bool ConfigFile::StringReader(const std::string &data, std::string &value)
+{
+	value = data;
+	return true;
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		StringReader
+//
+// Description:		Reads the specified data into another string.
+//
+// Input Arguments:
+//		data	= const std::string&
+//
+// Output Arguments:
+//		value	= std::string&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+bool ConfigFile::StringVectorReader(const std::string &data, std::vector<std::string> &value)
+{
+	std::string s;
+	if (!StringReader(data, s))
+		return false;
+	value.push_back(s);
 	return true;
 }
 
