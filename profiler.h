@@ -3,11 +3,31 @@
 // Auth:  K. Loux
 // Desc:  Profiler object for analyzing applications.  Note:  This is NOT thread-safe!
 
-#ifndef _PROFILER_H_
-#define _PROFILER_H_
+/*
+INSTRUCTIONS:
+To use this profiling tool, uncomment "#define PROFILE" below.  Then,
+instrument your code with the following macros:
+
+PROFILER_START - called once, prior to calling any other macros
+PROFILER_ENTER - call this to start the timer
+PROFILER_EXIT - call this to stop the timer (one EXIT for every ENTER!)
+PROFILE_THIS_SCOPE - call this to profile from the call to the end of the scope
+PROFILER_PRINT - call once at the end of the program to print the results
+
+Note that code segments are categorized based on function name.  So in order to
+differentiate between portions of a function, these portions must be broken out
+into separate subroutines.
+
+You can profile a function and also the methods called within the function.
+
+When you want to disable profiling, just undefine PROFILE.
+*/
+
+#ifndef PROFILER_H_
+#define PROFILER_H_
 
 // Comment out the line below to disable profiling
-//#define PROFILE
+#define PROFILE
 
 #ifdef PROFILE
 
@@ -167,17 +187,17 @@ private:
 #define PROFILER_START Profiler::Start();
 #define PROFILER_ENTER Profiler::Enter(FUNC_NAME);
 #define PROFILER_EXIT Profiler::Exit(FUNC_NAME);
-#define PROFILER_PRINT Profiler::Print();
 #define PROFILE_THIS_SCOPE ProfilerHelper profilerHelper(FUNC_NAME);
+#define PROFILER_PRINT Profiler::Print();
 
 #else
 
 #define PROFILER_START
 #define PROFILER_ENTER
 #define PROFILER_EXIT
-#define PROFILER_PRINT
 #define PROFILE_THIS_SCOPE
+#define PROFILER_PRINT
 
 #endif// PROFILE
 
-#endif// _PROFILER_H_
+#endif// PROFILER_H_
