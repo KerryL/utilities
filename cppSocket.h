@@ -21,6 +21,7 @@
 #include <WinSock2.h>
 #else
 // *nix headers
+#include <sys/select.h>
 #endif
 
 // Forward declarations

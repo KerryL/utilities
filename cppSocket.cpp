@@ -132,7 +132,8 @@ bool CPPSocket::Create(const unsigned short &port, const string &target)
 {
 #ifdef WIN32
 	WSAData wsaData;
-    if (WSAStartup(MAKEWORD(2, 1), &wsaData) != 0) {
+    if (WSAStartup(MAKEWORD(2, 1), &wsaData) != 0)
+	{
         outStream << "Failed to find Winsock 2.1 or better" << endl;
         return false;
     }
