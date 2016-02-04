@@ -73,7 +73,6 @@ const unsigned int CPPSocket::tcpListenTimeout = 5;// [sec]
 //==========================================================================
 CPPSocket::CPPSocket(SocketType type, ostream& outStream) : type(type), outStream(outStream)
 {
-	clientMessageSize = 0;
 	pthread_mutex_init(&bufferMutex, NULL);
 
 	rcvBuffer = new DataType[maxMessageSize];
@@ -186,7 +185,6 @@ bool CPPSocket::Create(const unsigned short &port, const string &target)
 void CPPSocket::Destroy()
 {
 	continueListening = false;
-	clientMessageSize = 0;
 	int errorNumber;
 	if (type == SocketTCPServer)
 	{
@@ -546,22 +544,13 @@ void CPPSocket::HandleClient(SocketID newSock)
 	int errorNumber;
 	if ((errorNumber = pthread_mutex_lock(&bufferMutex)) != 0)
 		outStream << "  Error locking mutex (" << errorNumber << ")" << endl;
-	clientMessageSize = DoReceive(newSock);
+	clientMessageSize[newSock] = DoReceive(newSock);
 	if ((errorNumber = pthread_mutex_unlock(&bufferMutex)) != 0)
 		outStream << "  Error unlocking mutex (" << errorNumber << ")" << endl;
 
 	// On disconnect
-	if (clientMessageSize <= 0)
-	{
-		outStream << "  Client " << newSock << " disconnected" << std::endl;
-		RemoveSocketFromSet(newSock, clients);
-
-#ifdef WIN32
-		closesocket(newSock);
-#else
-		close(newSock);
-#endif
-	}
+	if (clientMessageSize[newSock] <= 0)
+		DropClient(newSock);
 }
 
 //==========================================================================
@@ -591,6 +580,36 @@ bool CPPSocket::Connect(const sockaddr_in &address)
 	outStream << "  Socket " << sock << " on port " << ntohs(address.sin_port) << " successfully connected" << endl;
 
 	return true;
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		DropClient
+//
+// Description:		Kills the connection to the specified client.
+//
+// Input Arguments:
+//		sockId	= const SocketID&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void CPPSocket::DropClient(const SocketID& sockId)
+{
+	RemoveSocketFromSet(sockId, clients);
+	clientMessageSize.erase(sockId);
+
+#ifdef WIN32
+	closesocket(sockId);
+#else
+	close(sockId);
+#endif
+
+	outStream << "  Client " << sockId << " disconnected" << std::endl;
 }
 
 //==========================================================================
@@ -659,6 +678,34 @@ bool CPPSocket::SetBlocking(bool blocking)
 // Description:		Receives messages from the socket.
 //
 // Input Arguments:
+//		sockId	= SocketID&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		int specifying bytes received, or SOCKET_ERROR on error
+//
+//==========================================================================
+int CPPSocket::Receive(SocketID& sockId)
+{
+	assert(type == SocketTCPServer);
+
+	// Need to return the number of new bytes in the buffer, but only from one
+	// client at a time
+
+	// Could do something like:
+	// On read, write socketID and message length to buffer, then append message contents?
+	// TODO:  Implement
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		Receive
+//
+// Description:		Receives messages from the socket.
+//
+// Input Arguments:
 //		outSenderAddr	= struct sockaddr_in* (optional)
 //
 // Output Arguments:
@@ -670,8 +717,7 @@ bool CPPSocket::SetBlocking(bool blocking)
 //==========================================================================
 int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 {
-	if (type == SocketTCPServer)
-		return clientMessageSize;
+	assert(type != SocketTCPServer);
 
 	struct sockaddr_in quietSenderAddr, *useSenderAddr;
 	if (outSenderAddr)

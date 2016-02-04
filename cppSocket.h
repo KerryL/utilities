@@ -12,6 +12,7 @@
 // Standard C++ headers
 #include <string>
 #include <vector>
+#include <map>
 #include <iostream>
 
 #ifdef _WIN32
@@ -53,8 +54,11 @@ public:
 	bool Create(const unsigned short &port = 0, const std::string &target = "");
 	void Destroy();
 
+	void DropClient(const SocketID& sockId);
+
 	bool SetBlocking(bool blocking);
 
+	int Receive(SocketID& sockId);
 	int Receive(struct sockaddr_in *outSenderAddr = NULL);
 
 	// NOTE:  If type == SocketTCPServer, calling method MUST aquire and release mutex when using GetLastMessage
@@ -118,7 +122,7 @@ private:
 	void HandleClient(SocketID newSock);
 
 	volatile bool continueListening;
-	volatile int clientMessageSize;
+	volatile std::map<SocketID, int> clientMessageSize;
 	pthread_t listenerThread;
 	pthread_mutex_t bufferMutex;
 	fd_set clients;
