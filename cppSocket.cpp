@@ -73,6 +73,9 @@ const unsigned int CPPSocket::tcpListenTimeout = 5;// [sec]
 //==========================================================================
 CPPSocket::CPPSocket(SocketType type, ostream& outStream) : type(type), outStream(outStream)
 {
+	lastClient = 0;
+	clientMessageSize = 0;
+	
 	pthread_mutex_init(&bufferMutex, NULL);
 
 	rcvBuffer = new DataType[maxMessageSize];
@@ -184,6 +187,8 @@ bool CPPSocket::Create(const unsigned short &port, const string &target)
 //==========================================================================
 void CPPSocket::Destroy()
 {
+	lastClient = 0;
+	clientMessageSize = 0;
 	continueListening = false;
 	int errorNumber;
 	if (type == SocketTCPServer)
@@ -544,7 +549,8 @@ void CPPSocket::HandleClient(SocketID newSock)
 	int errorNumber;
 	if ((errorNumber = pthread_mutex_lock(&bufferMutex)) != 0)
 		outStream << "  Error locking mutex (" << errorNumber << ")" << endl;
-	clientMessageSize[newSock] = DoReceive(newSock);
+	clientMessageSize = DoReceive(newSock);
+	lastClient = newSock;
 	if ((errorNumber = pthread_mutex_unlock(&bufferMutex)) != 0)
 		outStream << "  Error unlocking mutex (" << errorNumber << ")" << endl;
 
@@ -601,7 +607,12 @@ bool CPPSocket::Connect(const sockaddr_in &address)
 void CPPSocket::DropClient(const SocketID& sockId)
 {
 	RemoveSocketFromSet(sockId, clients);
-	clientMessageSize.erase(sockId);
+
+	if (lastClient == sockId)
+	{
+		lastClient = 0;
+		clientMessageSize = 0;
+	}	
 
 #ifdef WIN32
 	closesocket(sockId);
@@ -675,7 +686,7 @@ bool CPPSocket::SetBlocking(bool blocking)
 // Class:			CPPSocket
 // Function:		Receive
 //
-// Description:		Receives messages from the socket.
+// Description:		Receives messages from the socket.  TCP server version.
 //
 // Input Arguments:
 //		sockId	= SocketID&
@@ -691,12 +702,8 @@ int CPPSocket::Receive(SocketID& sockId)
 {
 	assert(type == SocketTCPServer);
 
-	// Need to return the number of new bytes in the buffer, but only from one
-	// client at a time
-
-	// Could do something like:
-	// On read, write socketID and message length to buffer, then append message contents?
-	// TODO:  Implement
+	sockId = lastClient;
+	return clientMessageSize;
 }
 
 //==========================================================================
@@ -717,7 +724,8 @@ int CPPSocket::Receive(SocketID& sockId)
 //==========================================================================
 int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 {
-	assert(type != SocketTCPServer);
+	if (type == SocketTCPServer)
+		return clientMessageSize;
 
 	struct sockaddr_in quietSenderAddr, *useSenderAddr;
 	if (outSenderAddr)

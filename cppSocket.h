@@ -12,7 +12,6 @@
 // Standard C++ headers
 #include <string>
 #include <vector>
-#include <map>
 #include <iostream>
 
 #ifdef _WIN32
@@ -122,7 +121,8 @@ private:
 	void HandleClient(SocketID newSock);
 
 	volatile bool continueListening;
-	volatile std::map<SocketID, int> clientMessageSize;
+	volatile clientMessageSize;
+	volatile SocketID lastClient;
 	pthread_t listenerThread;
 	pthread_mutex_t bufferMutex;
 	fd_set clients;
