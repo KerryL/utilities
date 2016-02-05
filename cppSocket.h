@@ -121,7 +121,7 @@ private:
 	void HandleClient(SocketID newSock);
 
 	volatile bool continueListening;
-	volatile clientMessageSize;
+	volatile unsigned int clientMessageSize;
 	volatile SocketID lastClient;
 	pthread_t listenerThread;
 	pthread_mutex_t bufferMutex;

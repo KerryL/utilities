@@ -555,7 +555,7 @@ void CPPSocket::HandleClient(SocketID newSock)
 		outStream << "  Error unlocking mutex (" << errorNumber << ")" << endl;
 
 	// On disconnect
-	if (clientMessageSize[newSock] <= 0)
+	if (clientMessageSize <= 0)
 		DropClient(newSock);
 }
 
