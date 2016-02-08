@@ -162,7 +162,7 @@ bool CPPSocket::Create(const unsigned short &port, const string &target)
 	if (type == SocketICMP)
 		return true;
 	else if (type == SocketTCPClient)
-		return Connect(AssembleAddress(port, GetBestLocalIPAddress(target)));
+		return Connect(AssembleAddress(port, target));
 
 	// TCP Servers and any UDP socket
 	return Bind(AssembleAddress(port, GetBestLocalIPAddress(target)));
