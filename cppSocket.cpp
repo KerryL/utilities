@@ -73,8 +73,6 @@ const unsigned int CPPSocket::tcpListenTimeout = 5;// [sec]
 //==========================================================================
 CPPSocket::CPPSocket(SocketType type, ostream& outStream) : type(type), outStream(outStream)
 {
-	lastClient = 0;
-	clientMessageSize = 0;
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
 	
@@ -106,9 +104,36 @@ CPPSocket::~CPPSocket()
 	delete [] rcvBuffer;
 	rcvBuffer = NULL;
 
+	DeleteClientBuffers();
+
 	int errorNumber;
 	if ((errorNumber = pthread_mutex_destroy(&bufferMutex)) != 0)
 		outStream << "Error destroying mutex (" << errorNumber << ")" << endl;
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		DeleteClientBuffers
+//
+// Description:		Frees memory for all client buffers;
+//
+// Input Arguments:
+//		None
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+void CPPSocket::DeleteClientBuffers()
+{
+	ClientBufferMap::iterator it;
+	for (it = clientBuffers.begin(); it != clientBuffers.end(); it++)
+		delete [] it->second.buffer;
+
+	clientBuffers.clear();
 }
 
 //==========================================================================
@@ -189,8 +214,6 @@ bool CPPSocket::Create(const unsigned short &port, const string &target)
 //==========================================================================
 void CPPSocket::Destroy()
 {
-	lastClient = 0;
-	clientMessageSize = 0;
 	continueListening = false;
 	int errorNumber;
 	if (type == SocketTCPServer)
@@ -198,6 +221,14 @@ void CPPSocket::Destroy()
 		if ((errorNumber = pthread_join(listenerThread, NULL)) != 0)
 			outStream << "Error destroying mutex (" << errorNumber << ")" << endl;
 	}
+
+	FD_ZERO(&clients);
+	FD_ZERO(&readSocks);
+
+	failedSendCount.clear();
+	DeleteClientBuffers();
+	while (!clientRcvQueue.empty())
+		clientRcvQueue.pop();
 
 #ifdef WIN32
 	closesocket(sock);
@@ -551,14 +582,18 @@ void CPPSocket::HandleClient(SocketID newSock)
 	int errorNumber;
 	if ((errorNumber = pthread_mutex_lock(&bufferMutex)) != 0)
 		outStream << "  Error locking mutex (" << errorNumber << ")" << endl;
-	clientMessageSize = DoReceive(newSock);
-	lastClient = newSock;
-	if ((errorNumber = pthread_mutex_unlock(&bufferMutex)) != 0)
-		outStream << "  Error unlocking mutex (" << errorNumber << ")" << endl;
+
+	int msgSize = DoReceive(newSock);
+	clientBuffers[newSock].messageSize = msgSize;
 
 	// On disconnect
-	if (clientMessageSize <= 0)
+	if (msgSize <= 0)
 		DropClient(newSock);
+	else
+		clientRcvQueue.push(newSock);
+
+	if ((errorNumber = pthread_mutex_unlock(&bufferMutex)) != 0)
+		outStream << "  Error unlocking mutex (" << errorNumber << ")" << endl;
 }
 
 //==========================================================================
@@ -634,12 +669,8 @@ void CPPSocket::DropClient(const SocketID& sockId)
 	assert(type == SocketTCPServer);
 	RemoveSocketFromSet(sockId, clients);
 
-	if (lastClient == sockId)
-	{
-		lastClient = 0;
-		clientMessageSize = 0;
-	}
-
+	delete [] clientBuffers[sockId].buffer;
+	clientBuffers.erase(sockId);
 	failedSendCount.erase(sockId);
 
 #ifdef WIN32
@@ -757,8 +788,43 @@ int CPPSocket::Receive(SocketID& sockId)
 {
 	assert(type == SocketTCPServer);
 
-	sockId = lastClient;
-	return clientMessageSize;
+	// TODO:  Need to have separate buffers for messages from each client?
+	if (clientRcvQueue.empty())
+		return SOCKET_ERROR;
+
+	sockId = clientRcvQueue.front();
+	return clientBuffers[sockId].messageSize;
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		GetLastMessage
+//
+// Description:		Receives messages from the socket.  TCP server version.
+//					Note that each call will pop the queue - when this method
+//					is called, caller MUST handle data at time of call!
+//
+// Input Arguments:
+//		sockId	= SocketID&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		CPPSocket::DataType* pointing to latest data
+//
+//==========================================================================
+CPPSocket::DataType* CPPSocket::GetLastMessage()
+{
+	if (type == SocketTCPServer)
+	{
+		assert(!clientRcvQueue.empty());
+		DataType* data = clientBuffers[clientRcvQueue.front()].buffer;
+		clientRcvQueue.pop();
+		return data;
+	}
+	else
+		return rcvBuffer;
 }
 
 //==========================================================================
@@ -780,7 +846,12 @@ int CPPSocket::Receive(SocketID& sockId)
 int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 {
 	if (type == SocketTCPServer)
-		return clientMessageSize;
+	{
+		assert(outSenderAddr == NULL &&
+			"Use overload taking SocketID for identifying sender as TCP Server");
+		SocketID dummy;
+		return Receive(dummy);
+	}
 
 	struct sockaddr_in quietSenderAddr, *useSenderAddr;
 	if (outSenderAddr)
@@ -837,6 +908,19 @@ __pragma(warning(disable:4458));
 #endif
 int CPPSocket::DoReceive(SocketID sock, struct sockaddr_in *senderAddr)
 {
+	DataType* useBuffer = rcvBuffer;
+	if (type == SocketTCPServer)
+	{
+		ClientBufferMap::iterator it = clientBuffers.find(sock);
+		if (it == clientBuffers.end())
+		{
+			clientBuffers[sock].buffer = new DataType[maxMessageSize];
+			useBuffer = clientBuffers[sock].buffer;
+		}
+		else
+			useBuffer = it->second.buffer;
+	}
+
 	if (senderAddr)
 	{
 #ifdef WIN32
@@ -844,11 +928,11 @@ int CPPSocket::DoReceive(SocketID sock, struct sockaddr_in *senderAddr)
 #else
 		socklen_t addrSize = sizeof(*senderAddr);
 #endif
-		return recvfrom(sock, rcvBuffer, maxMessageSize, 0, (struct sockaddr*)senderAddr, &addrSize);
+		return recvfrom(sock, useBuffer, maxMessageSize, 0, (struct sockaddr*)senderAddr, &addrSize);
 	}
 	else
 	{
-		return recv(sock, rcvBuffer, maxMessageSize, 0);
+		return recv(sock, useBuffer, maxMessageSize, 0);
 	}
 }
 #ifdef _WIN32
@@ -947,6 +1031,51 @@ bool CPPSocket::TCPSend(const DataType* buffer, const int &bufferSize)
 
 //==========================================================================
 // Class:			CPPSocket
+// Function:		TCPSend
+//
+// Description:		Sends a message to the specified client (TCP).
+//
+// Input Arguments:
+//		client		= const SocketID&
+//		buffer		= const DataType* pointing to the message body contents
+//		bufferSize	= const int& specifying the size of the message
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+bool CPPSocket::TCPSend(const SocketID& client, const DataType* buffer, const int &bufferSize)
+{
+	assert(type == SocketTCPServer);
+
+	if (FD_ISSET(client, &clients) == 0 && client != sock)
+		return false;
+
+	int bytesSent = send(client, buffer, bufferSize, 0);
+
+	if (bytesSent == SOCKET_ERROR)
+		{
+			outStream << "  Error sending TCP message on socket " << client << ": " << GetLastError() << endl;
+			failedSendCount[client]++;
+			return false;
+		}
+		else if (bytesSent != bufferSize)
+		{
+			outStream << "  Wrong number of bytes sent (TCP) on socket " << client << endl;
+			failedSendCount[client]++;
+			return false;
+		}
+		else
+			failedSendCount[client] = 0;
+
+	return true;
+}
+
+//==========================================================================
+// Class:			CPPSocket
 // Function:		TCPServerSend
 //
 // Description:		Sends a message to all of the connected clients (TCP).
@@ -984,7 +1113,7 @@ bool CPPSocket::TCPServerSend(const DataType* buffer, const int &bufferSize)
 		}
 		else if (bytesSent != bufferSize)
 		{
-			outStream << "  Wrong number of bytes sent (TCP) on socket "<< s << endl;
+			outStream << "  Wrong number of bytes sent (TCP) on socket " << s << endl;
 			success = false;
 			failedSendCount[s]++;
 		}

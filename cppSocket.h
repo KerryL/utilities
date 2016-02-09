@@ -14,6 +14,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <queue>
 
 #ifdef _WIN32
 // Windows headers
@@ -64,7 +65,7 @@ public:
 	int Receive(struct sockaddr_in *outSenderAddr = NULL);
 
 	// NOTE:  If type == SocketTCPServer, calling method MUST aquire and release mutex when using GetLastMessage
-	DataType* GetLastMessage() { clientMessageSize = 0; return rcvBuffer; }
+	DataType* GetLastMessage();
 
 	bool GetLock();
 	bool ReleaseLock();
@@ -77,7 +78,8 @@ public:
 	static sockaddr_in AssembleAddress(const unsigned short &port, const std::string &target = "");
 
 	bool UDPSend(const char *addr, const short &port, const DataType* buffer, const int &bufferSize);// UDP version
-	bool TCPSend(const DataType* buffer, const int &bufferSize);// TCP version
+	bool TCPSend(const DataType* buffer, const int &bufferSize);// TCP broadcast version
+	bool TCPSend(const SocketID& client, const DataType* buffer, const int &bufferSize);// TCP single client version
 
 	inline bool IsICMP() const { return type == SocketICMP; }
 	inline bool IsTCP() const { return type == SocketTCPServer || type == SocketTCPClient; }
@@ -124,14 +126,24 @@ private:
 	void HandleClient(SocketID newSock);
 
 	volatile bool continueListening;
-	volatile unsigned int clientMessageSize;
-	volatile SocketID lastClient;
 	pthread_t listenerThread;
 	pthread_mutex_t bufferMutex;
 	fd_set clients;
 	fd_set readSocks;
 	SocketID maxSock;
+
 	std::map<SocketID, unsigned short> failedSendCount;
+
+	struct BufferInfo
+	{
+		unsigned int messageSize;
+		DataType* buffer;
+	};
+
+	typedef std::map<SocketID, BufferInfo> ClientBufferMap;
+	ClientBufferMap clientBuffers;
+	std::queue<SocketID> clientRcvQueue;
+	void DeleteClientBuffers();
 
 	static void AddSocketToSet(SocketID socketFD, fd_set &set);
 	static void RemoveSocketFromSet(SocketID socketFD, fd_set &set);
