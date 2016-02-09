@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <map>
 
 #ifdef _WIN32
 // Windows headers
@@ -53,6 +54,8 @@ public:
 	bool Create(const unsigned short &port = 0, const std::string &target = "");
 	void Destroy();
 
+	bool ClientIsConnected(const SocketID& sockId);
+	unsigned short GetFailedSendCount(const SocketID& sockId);
 	void DropClient(const SocketID& sockId);
 
 	bool SetBlocking(bool blocking);
@@ -128,6 +131,7 @@ private:
 	fd_set clients;
 	fd_set readSocks;
 	SocketID maxSock;
+	std::map<SocketID, unsigned short> failedSendCount;
 
 	static void AddSocketToSet(SocketID socketFD, fd_set &set);
 	static void RemoveSocketFromSet(SocketID socketFD, fd_set &set);

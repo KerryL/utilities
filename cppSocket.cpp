@@ -75,6 +75,8 @@ CPPSocket::CPPSocket(SocketType type, ostream& outStream) : type(type), outStrea
 {
 	lastClient = 0;
 	clientMessageSize = 0;
+	FD_ZERO(&clients);
+	FD_ZERO(&readSocks);
 	
 	pthread_mutex_init(&bufferMutex, NULL);
 
@@ -590,6 +592,29 @@ bool CPPSocket::Connect(const sockaddr_in &address)
 
 //==========================================================================
 // Class:			CPPSocket
+// Function:		ClientIsConnected
+//
+// Description:		Checks to see if the specified socked ID is in the set of
+//					connected clients.
+//
+// Input Arguments:
+//		sockId	= const SocketID&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		bool, true if client connection is still active
+//
+//==========================================================================
+bool CPPSocket::ClientIsConnected(const SocketID& sockId)
+{
+	assert(type == SocketTCPServer);
+	return FD_ISSET(sockId, &clients) != 0;
+}
+
+//==========================================================================
+// Class:			CPPSocket
 // Function:		DropClient
 //
 // Description:		Kills the connection to the specified client.
@@ -606,13 +631,16 @@ bool CPPSocket::Connect(const sockaddr_in &address)
 //==========================================================================
 void CPPSocket::DropClient(const SocketID& sockId)
 {
+	assert(type == SocketTCPServer);
 	RemoveSocketFromSet(sockId, clients);
 
 	if (lastClient == sockId)
 	{
 		lastClient = 0;
 		clientMessageSize = 0;
-	}	
+	}
+
+	failedSendCount.erase(sockId);
 
 #ifdef WIN32
 	closesocket(sockId);
@@ -621,6 +649,33 @@ void CPPSocket::DropClient(const SocketID& sockId)
 #endif
 
 	outStream << "  Client " << sockId << " disconnected" << std::endl;
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		GetFailedSendCount
+//
+// Description:		Returns the number of messages send to the specified
+//					client since the last successful send.
+//
+// Input Arguments:
+//		sockId	= const SocketID&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		unsigned short
+//
+//==========================================================================
+unsigned short CPPSocket::GetFailedSendCount(const SocketID& sockId)
+{
+	assert(type == SocketTCPServer);
+	std::map<SocketID, unsigned short>::const_iterator it = failedSendCount.find(sockId);
+	if (it == failedSendCount.end())
+		return 0;
+
+	return it->second;
 }
 
 //==========================================================================
@@ -925,12 +980,16 @@ bool CPPSocket::TCPServerSend(const DataType* buffer, const int &bufferSize)
 		{
 			outStream << "  Error sending TCP message on socket " << s << ": " << GetLastError() << endl;
 			success = false;
+			failedSendCount[s]++;
 		}
 		else if (bytesSent != bufferSize)
 		{
 			outStream << "  Wrong number of bytes sent (TCP) on socket "<< s << endl;
 			success = false;
+			failedSendCount[s]++;
 		}
+		else
+			failedSendCount[s] = 0;
 	}
 
 	return success && calledSend;
