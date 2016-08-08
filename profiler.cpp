@@ -1,4 +1,4 @@
-// File:  profiler.h
+// File:  profiler.cpp
 // Date:  4/17/2013
 // Auth:  K. Loux
 // Desc:  Profiler object for analyzing applications.  Note:  This is NOT thread-safe!
