@@ -23,7 +23,7 @@ class ConfigFile
 {
 public:
 	ConfigFile(std::ostream &outStream = std::cout)
-		: outStream(outStream) {};
+		: outStream(outStream) {}
 	virtual ~ConfigFile();
 
 	bool ReadConfiguration(const std::string &fileName);
@@ -34,19 +34,19 @@ public:
 protected:
 	std::ostream& outStream;
 	
-	virtual void BuildConfigItems(void) = 0;
-	virtual void AssignDefaults(void) = 0;
+	virtual void BuildConfigItems() = 0;
+	virtual void AssignDefaults() = 0;
 
-	virtual bool ConfigIsOK(void) = 0;
+	virtual bool ConfigIsOK() = 0;
 	
 	class ConfigItemBase
 	{
 	public:
-		virtual ~ConfigItemBase() {};
+		virtual ~ConfigItemBase() {}
 		virtual bool AssignValue(const std::string &/*data*/) {return false;};//= 0;
 		
 	protected:
-		ConfigItemBase() {};
+		ConfigItemBase() {}
 	};
 
 	template <typename T>
@@ -56,8 +56,8 @@ protected:
 		typedef bool (*ReadFunction)(const std::string &s, T &value);
 		
 		ConfigItem(T &value, ReadFunction reader) : ConfigItemBase(),
-			value(value), reader(reader) {};
-		virtual ~ConfigItem() {};
+			value(value), reader(reader) {}
+		virtual ~ConfigItem() = default;
 
 		virtual bool AssignValue(const std::string &data);
 
