@@ -33,8 +33,6 @@
 // Local headers
 #include "cppSocket.h"
 
-using namespace std;
-
 //==========================================================================
 // Class:			CPPSocket
 // Function:		Constant definitions
@@ -71,7 +69,7 @@ const unsigned int CPPSocket::tcpListenTimeout = 5;// [sec]
 //		None
 //
 //==========================================================================
-CPPSocket::CPPSocket(SocketType type, ostream& outStream) : type(type), outStream(outStream)
+CPPSocket::CPPSocket(SocketType type, std::ostream& outStream) : type(type), outStream(outStream)
 {
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
@@ -108,7 +106,7 @@ CPPSocket::~CPPSocket()
 
 	int errorNumber;
 	if ((errorNumber = pthread_mutex_destroy(&bufferMutex)) != 0)
-		outStream << "Error destroying mutex (" << errorNumber << ")" << endl;
+		outStream << "Error destroying mutex (" << errorNumber << ")" << std::endl;
 }
 
 //==========================================================================
@@ -157,13 +155,13 @@ void CPPSocket::DeleteClientBuffers()
 //		bool, true if the socket is created successfully, false otherwise
 //
 //==========================================================================
-bool CPPSocket::Create(const unsigned short &port, const string &target)
+bool CPPSocket::Create(const unsigned short &port, const std::string &target)
 {
 #ifdef WIN32
 	WSAData wsaData;
     if (WSAStartup(MAKEWORD(2, 1), &wsaData) != 0)
 	{
-        outStream << "Failed to find Winsock 2.1 or better" << endl;
+        outStream << "Failed to find Winsock 2.1 or better" << std::endl;
         return false;
     }
 #endif
@@ -177,14 +175,14 @@ bool CPPSocket::Create(const unsigned short &port, const string &target)
 
 	if (sock == INVALID_SOCKET)
 	{
-		outStream << "  Socket creation Failed:  " << GetLastError() << endl;
-		outStream << "  Port: " << port << endl;
-		outStream << "  Type: " << GetTypeString(type) << endl;
+		outStream << "  Socket creation Failed:  " << GetLastError() << std::endl;
+		outStream << "  Port: " << port << std::endl;
+		outStream << "  Type: " << GetTypeString(type) << std::endl;
 
 		return false;
 	}
 
-	outStream << "  Created " << GetTypeString(type) << " socket with id " << sock << endl;
+	outStream << "  Created " << GetTypeString(type) << " socket with id " << sock << std::endl;
 
 	if (type == SocketICMP)
 		return true;
@@ -219,7 +217,7 @@ void CPPSocket::Destroy()
 	if (type == SocketTCPServer)
 	{
 		if ((errorNumber = pthread_join(listenerThread, NULL)) != 0)
-			outStream << "Error destroying mutex (" << errorNumber << ")" << endl;
+			outStream << "Error destroying mutex (" << errorNumber << ")" << std::endl;
 	}
 
 	FD_ZERO(&clients);
@@ -236,7 +234,7 @@ void CPPSocket::Destroy()
 #else
 	close(sock);
 #endif
-	outStream << "  Socket " << sock << " has been destroyed" << endl;
+	outStream << "  Socket " << sock << " has been destroyed" << std::endl;
 }
 
 //==========================================================================
@@ -294,12 +292,12 @@ bool CPPSocket::Bind(const sockaddr_in &address)
 	if (bind(sock, (struct sockaddr*)&address, sizeof(address)) == SOCKET_ERROR)
 	{
 		outStream << "  Bind to " << inet_ntoa(address.sin_addr) << ":"
-			<< ntohs(address.sin_port) << " failed:  " << GetLastError() << endl;
+			<< ntohs(address.sin_port) << " failed:  " << GetLastError() << std::endl;
 		return false;
 	}
 
 	outStream << "  Socket " << sock << " successfully bound to " <<
-		inet_ntoa(address.sin_addr) << ":" << ntohs(address.sin_port) << endl;
+		inet_ntoa(address.sin_addr) << ":" << ntohs(address.sin_port) << std::endl;
 
 	if (type == SocketTCPServer)
 		return Listen();
@@ -330,7 +328,7 @@ bool CPPSocket::SetOption(const int &level, const int &option, const DataType* v
 {
 	if (setsockopt(sock, level, option, value, size) == SOCKET_ERROR)
 	{
-		outStream << "Failed to set option:  " << GetLastError() << endl;
+		outStream << "Failed to set option:  " << GetLastError() << std::endl;
         return false;
     }
 	
@@ -387,11 +385,11 @@ bool CPPSocket::Listen()
 
 	if (listen(sock, maxConnections) == SOCKET_ERROR)
 	{
-		outStream << "  Listen on socket ID " << sock << " failed:  " << GetLastError() << endl;
+		outStream << "  Listen on socket ID " << sock << " failed:  " << GetLastError() << std::endl;
 		return false;
 	}
 
-	outStream << "  Socket " << sock << " listening" << endl;
+	outStream << "  Socket " << sock << " listening" << std::endl;
 
 	if (pthread_create(&listenerThread, NULL, &LaunchThread, (void*)this) == 0)
 	{
@@ -581,9 +579,9 @@ void CPPSocket::HandleClient(SocketID newSock)
 {
 	int errorNumber;
 	if ((errorNumber = pthread_mutex_lock(&bufferMutex)) != 0)
-		outStream << "  Error locking mutex (" << errorNumber << ")" << endl;
+		outStream << "  Error locking mutex (" << errorNumber << ")" << std::endl;
 
-	int msgSize = DoReceive(newSock);
+	int msgSize = DoReceive(newSock, nullptr);
 	clientBuffers[newSock].messageSize = msgSize;
 
 	// On disconnect
@@ -593,7 +591,7 @@ void CPPSocket::HandleClient(SocketID newSock)
 		clientRcvQueue.push(newSock);
 
 	if ((errorNumber = pthread_mutex_unlock(&bufferMutex)) != 0)
-		outStream << "  Error unlocking mutex (" << errorNumber << ")" << endl;
+		outStream << "  Error unlocking mutex (" << errorNumber << ")" << std::endl;
 }
 
 //==========================================================================
@@ -616,11 +614,11 @@ bool CPPSocket::Connect(const sockaddr_in &address)
 {
 	if (connect(sock, (struct sockaddr*)&address, sizeof(address)) < 0)
 	{
-		outStream << "  Connect to " << ntohs(address.sin_port) << " failed:  " << GetLastError() << endl;
+		outStream << "  Connect to " << ntohs(address.sin_port) << " failed:  " << GetLastError() << std::endl;
 		return false;
 	}
 
-	outStream << "  Socket " << sock << " on port " << ntohs(address.sin_port) << " successfully connected" << endl;
+	outStream << "  Socket " << sock << " on port " << ntohs(address.sin_port) << " successfully connected" << std::endl;
 
 	return true;
 }
@@ -730,7 +728,7 @@ bool CPPSocket::EnableAddressReusue()
 	int one(1);
 	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (DataType*)&one, sizeof(int)) == SOCKET_ERROR)
 	{
-		outStream << "  Set socket options failed for socket " << sock << ":  " << GetLastError() << endl;
+		outStream << "  Set socket options failed for socket " << sock << ":  " << GetLastError() << std::endl;
 		return false;
 	}
 
@@ -853,14 +851,8 @@ int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 		return Receive(dummy);
 	}
 
-	struct sockaddr_in quietSenderAddr, *useSenderAddr;
-	if (outSenderAddr)
-		useSenderAddr = outSenderAddr;
-	else
-		useSenderAddr = &quietSenderAddr;
-
 	int bytesrcv;
-	bytesrcv = DoReceive(sock, useSenderAddr);
+	bytesrcv = DoReceive(sock, outSenderAddr);
 	if (bytesrcv == SOCKET_ERROR)
 	{
 		//outStream << "  Error receiving message on socket " << sock << ": " << GetLastError() << endl;
@@ -868,8 +860,10 @@ int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 	}
 	else if (bytesrcv == 0)
 	{
-		outStream << "  Received empty packet from "
-			<< inet_ntoa(useSenderAddr->sin_addr) << ":" << ntohs(useSenderAddr->sin_port) << endl;
+		outStream << "  Received empty packet";
+		if (outSenderAddr)
+			outStream << " from " << inet_ntoa(outSenderAddr->sin_addr) << ":" << ntohs(outSenderAddr->sin_port);
+		outStream << std::endl;
 		return SOCKET_ERROR;
 	}
 
@@ -973,7 +967,7 @@ bool CPPSocket::UDPSend(const char *addr, const short &port,
 		outStream << "  Error sending UDP message to "
 			<< inet_ntoa(targetAddress.sin_addr) << ":"
 			<< ntohs(targetAddress.sin_port) << ":  "
-			<< GetLastError() << endl;
+			<< GetLastError() << std::endl;
 		return false;
 	}
 
@@ -981,7 +975,7 @@ bool CPPSocket::UDPSend(const char *addr, const short &port,
 	{
 		outStream << "  Wrong number of bytes sent (UDP) to "
 			<< inet_ntoa(targetAddress.sin_addr) << ":"
-			<< ntohs(targetAddress.sin_port) << endl;
+			<< ntohs(targetAddress.sin_port) << std::endl;
 		return false;
 	}
 
@@ -1016,13 +1010,13 @@ bool CPPSocket::TCPSend(const DataType* buffer, const int &bufferSize)
 
 	if (bytesSent == SOCKET_ERROR)
 	{
-		outStream << "  Error sending TCP message: " << GetLastError() << endl;
+		outStream << "  Error sending TCP message: " << GetLastError() << std::endl;
 		return false;
 	}
 
 	if (bytesSent != bufferSize)
 	{
-		outStream << "  Wrong number of bytes sent (TCP)" << endl;
+		outStream << "  Wrong number of bytes sent (TCP)" << std::endl;
 		return false;
 	}
 
@@ -1058,13 +1052,13 @@ bool CPPSocket::TCPSend(const SocketID& client, const DataType* buffer, const in
 
 	if (bytesSent == SOCKET_ERROR)
 		{
-			outStream << "  Error sending TCP message on socket " << client << ": " << GetLastError() << endl;
+			outStream << "  Error sending TCP message on socket " << client << ": " << GetLastError() << std::endl;
 			failedSendCount[client]++;
 			return false;
 		}
 		else if (bytesSent != bufferSize)
 		{
-			outStream << "  Wrong number of bytes sent (TCP) on socket " << client << endl;
+			outStream << "  Wrong number of bytes sent (TCP) on socket " << client << std::endl;
 			failedSendCount[client]++;
 			return false;
 		}
@@ -1107,13 +1101,13 @@ bool CPPSocket::TCPServerSend(const DataType* buffer, const int &bufferSize)
 
 		if (bytesSent == SOCKET_ERROR)
 		{
-			outStream << "  Error sending TCP message on socket " << s << ": " << GetLastError() << endl;
+			outStream << "  Error sending TCP message on socket " << s << ": " << GetLastError() << std::endl;
 			success = false;
 			failedSendCount[s]++;
 		}
 		else if (bytesSent != bufferSize)
 		{
-			outStream << "  Wrong number of bytes sent (TCP) on socket " << s << endl;
+			outStream << "  Wrong number of bytes sent (TCP) on socket " << s << std::endl;
 			success = false;
 			failedSendCount[s]++;
 		}
@@ -1140,16 +1134,16 @@ bool CPPSocket::TCPServerSend(const DataType* buffer, const int &bufferSize)
 //		vector<string> containing local network interface addresses
 //
 //==========================================================================
-vector<string> CPPSocket::GetLocalIPAddress()
+std::vector<std::string> CPPSocket::GetLocalIPAddress()
 {
-	vector<string> ips;
+	std::vector<std::string> ips;
 #ifdef _WIN32
 	char host[80];
 
 	// Get the host name
 	if (gethostname(host, sizeof(host)) == SOCKET_ERROR)
 	{
-		/*outStream*/cerr << "  Error getting host name: " << GetLastError() << endl;
+		/*outStream*/std::cerr << "  Error getting host name: " << GetLastError() << std::endl;
 		return ips;
 	}
 
@@ -1157,7 +1151,7 @@ vector<string> CPPSocket::GetLocalIPAddress()
 
 	if (hostEntity == 0)
 	{
-		/*outStream*/cerr << "  Bad host lookup!" << endl;
+		/*outStream*/std::cerr << "  Bad host lookup!" << std::endl;
 		return ips;
 	}
 
@@ -1208,14 +1202,14 @@ vector<string> CPPSocket::GetLocalIPAddress()
 //		std::string containing the best local IP
 //
 //==========================================================================
-std::string CPPSocket::GetBestLocalIPAddress(const string &destination)
+std::string CPPSocket::GetBestLocalIPAddress(const std::string &destination)
 {
 	if (destination.empty())
 		return "";
 
 	unsigned int i;
-	vector<string> ips(GetLocalIPAddress());
-	string compareString(destination.substr(0, destination.find_last_of('.')));
+	std::vector<std::string> ips(GetLocalIPAddress());
+	std::string compareString(destination.substr(0, destination.find_last_of('.')));
 	for (i = 0; i < ips.size(); i++)
 	{
 		// Use the first address that matches beginning of destination
@@ -1284,7 +1278,7 @@ std::string CPPSocket::GetTypeString(SocketType type)
 //==========================================================================
 std::string CPPSocket::GetLastError()
 {
-	stringstream errorString;
+	std::stringstream errorString;
 #ifdef WIN32
 	errorString << "(" << WSAGetLastError() << ")";
 #else

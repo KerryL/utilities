@@ -117,7 +117,7 @@ private:
 	static std::string GetTypeString(SocketType type);
 	static std::string GetLastError();
 
-	int DoReceive(SocketID sock, struct sockaddr_in *senderAddr = NULL);
+	int DoReceive(SocketID sock, struct sockaddr_in *senderAddr);
 	bool TCPServerSend(const DataType* buffer, const int &bufferSize);
 
 	// TCP server methods and members
