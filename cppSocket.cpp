@@ -410,13 +410,13 @@ bool CPPSocket::Listen()
 //		timeout	= const int& [msec]
 //
 // Output Arguments:
-//		None
+//		errorOrHangUp	= bool*
 //
 // Return Value:
 //		bool, true if socket is ready for read, false if timeout occured
 //
 //==========================================================================
-bool CPPSocket::WaitForSocket(const int &timeout)
+bool CPPSocket::WaitForSocket(const int &timeout, bool* errorOrHangUp)
 {
 	struct pollfd fds;
 	fds.fd = sock;
@@ -424,6 +424,8 @@ bool CPPSocket::WaitForSocket(const int &timeout)
 	int retVal = poll(&fds, 1, timeout);
 	if (retVal == SOCKET_ERROR)
 		outStream << "poll failed:  " << GetLastError() << std::endl;
+	if (errorOrHangUp)
+		*errorOrHangUp = (fds.revents & POLLERR) || (fds.revents & POLLHUP);
 	return retVal > 0;
 }
 

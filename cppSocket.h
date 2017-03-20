@@ -62,7 +62,7 @@ public:
 	bool SetBlocking(bool blocking);
 
 	int Receive(SocketID& sockId);
-	int Receive(struct sockaddr_in *outSenderAddr = NULL);
+	int Receive(struct sockaddr_in *outSenderAddr = nullptr);
 
 	// NOTE:  If type == SocketTCPServer, calling method MUST aquire and release mutex when using GetLastMessage
 	DataType* GetLastMessage();
@@ -72,7 +72,7 @@ public:
 	pthread_mutex_t& GetMutex() { return bufferMutex; }
 	
 	bool SetOption(const int &level, const int &option, const DataType* value, const int &size);
-	bool WaitForSocket(const int &timeout);
+	bool WaitForSocket(const int &timeout, bool* errorOrHangUp = nullptr);
 
 	bool Bind(const sockaddr_in &address);
 	static sockaddr_in AssembleAddress(const unsigned short &port, const std::string &target = "");
