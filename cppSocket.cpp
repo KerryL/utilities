@@ -786,6 +786,8 @@ int CPPSocket::Receive(SocketID& sockId)
 {
 	assert(type == SocketTCPServer);
 
+	// TODO:  Need to check to see if we receive 0 bytes?  This would indicate
+	// we should close the connection (as the other end had already done so).
 	// TODO:  Need to have separate buffers for messages from each client?
 	if (clientRcvQueue.empty())
 		return SOCKET_ERROR;
@@ -860,16 +862,19 @@ int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 	}
 	else if (bytesrcv == 0)
 	{
-		outStream << "  Received empty packet";
+		outStream << "  Partner closed connection";
 		if (outSenderAddr)
-			outStream << " from " << inet_ntoa(outSenderAddr->sin_addr) << ":" << ntohs(outSenderAddr->sin_port);
+			outStream << " at " << inet_ntoa(outSenderAddr->sin_addr) << ":" << ntohs(outSenderAddr->sin_port);
 		outStream << std::endl;
-		return SOCKET_ERROR;
+		// Don't send socket error - this is a special case indicating
+		// that the other end had closed the connection
 	}
 
 	// Helpful for debugging, but generally we don't want it in our logs
-	/*outStream << "  Received " << bytesrcv << " bytes from "
-		<< inet_ntoa(useSenderAddr->sin_addr) << ":" << ntohs(useSenderAddr->sin_port) << endl;//*/
+	/*outStream << "  Received " << bytesrcv << " bytes";
+	if (outSenderAddr)
+		outStream << " from " << inet_ntoa(outSenderAddr->sin_addr) << ":" << ntohs(outSenderAddr->sin_port);
+	outStream << std::endl;//*/
 
 	return bytesrcv;
 }
