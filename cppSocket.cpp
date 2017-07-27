@@ -32,6 +32,7 @@
 
 // Local headers
 #include "cppSocket.h"
+#include "mutexLocker.h"
 
 //==========================================================================
 // Class:			CPPSocket
@@ -73,8 +74,6 @@ CPPSocket::CPPSocket(SocketType type, std::ostream& outStream) : type(type), out
 {
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
-	
-	pthread_mutex_init(&bufferMutex, NULL);
 
 	rcvBuffer = new DataType[maxMessageSize];
 }
@@ -103,10 +102,6 @@ CPPSocket::~CPPSocket()
 	rcvBuffer = NULL;
 
 	DeleteClientBuffers();
-
-	int errorNumber;
-	if ((errorNumber = pthread_mutex_destroy(&bufferMutex)) != 0)
-		outStream << "Error destroying mutex (" << errorNumber << ")" << std::endl;
 }
 
 //==========================================================================
@@ -213,12 +208,8 @@ bool CPPSocket::Create(const unsigned short &port, const std::string &target)
 void CPPSocket::Destroy()
 {
 	continueListening = false;
-	int errorNumber;
-	if (type == SocketTCPServer)
-	{
-		if ((errorNumber = pthread_join(listenerThread, NULL)) != 0)
-			outStream << "Error destroying mutex (" << errorNumber << ")" << std::endl;
-	}
+	if (type == SocketTCPServer && listenerThread.joinable())
+		listenerThread.join();
 
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
@@ -336,28 +327,6 @@ bool CPPSocket::SetOption(const int &level, const int &option, const DataType* v
 }
 
 //==========================================================================
-// Class:			friend of CPPSocket
-// Function:		LaunchThread
-//
-// Description:		Listener thread entry point (launches member function).
-//
-// Input Arguments:
-//		pThisSocket =	void* (really a pointer to a CPPSocket)
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		void*
-//
-//==========================================================================
-void *LaunchThread(void *pThisSocket)
-{
-	static_cast<CPPSocket*>(pThisSocket)->ListenThreadEntry();
-	return NULL;
-}
-
-//==========================================================================
 // Class:			CPPSocket
 // Function:		Listen
 //
@@ -391,13 +360,8 @@ bool CPPSocket::Listen()
 
 	outStream << "  Socket " << sock << " listening" << std::endl;
 
-	if (pthread_create(&listenerThread, NULL, &LaunchThread, (void*)this) == 0)
-	{
-		//outStream << "  Spawned listening thread with ID " << listenerThread << endl;// TODO:  Not sure why MSCV complains about this... Linux is OK
-		return true;
-	}
-
-	return false;
+	listenerThread = std::thread(&CPPSocket::ListenThreadEntry, this);
+	return true;
 }
 
 //==========================================================================
@@ -579,9 +543,7 @@ void CPPSocket::ListenThreadEntry()
 //==========================================================================
 void CPPSocket::HandleClient(SocketID newSock)
 {
-	int errorNumber;
-	if ((errorNumber = pthread_mutex_lock(&bufferMutex)) != 0)
-		outStream << "  Error locking mutex (" << errorNumber << ")" << std::endl;
+	MutexLocker lock(bufferMutex);
 
 	int msgSize = DoReceive(newSock, nullptr);
 	clientBuffers[newSock].messageSize = msgSize;
@@ -591,9 +553,6 @@ void CPPSocket::HandleClient(SocketID newSock)
 		DropClient(newSock);
 	else
 		clientRcvQueue.push(newSock);
-
-	if ((errorNumber = pthread_mutex_unlock(&bufferMutex)) != 0)
-		outStream << "  Error unlocking mutex (" << errorNumber << ")" << std::endl;
 }
 
 //==========================================================================
@@ -1307,12 +1266,12 @@ std::string CPPSocket::GetLastError()
 //		None
 //
 // Return Value:
-//		bool, true if lock aquired, false otherwise
+//		None
 //
 //==========================================================================
-bool CPPSocket::GetLock()
+void CPPSocket::GetLock()
 {
-	return pthread_mutex_trylock(&bufferMutex) == 0;
+	bufferMutex.lock();
 }
 
 //==========================================================================
@@ -1328,12 +1287,12 @@ bool CPPSocket::GetLock()
 //		None
 //
 // Return Value:
-//		bool, true if lock released, false otherwise
+//		None
 //
 //==========================================================================
-bool CPPSocket::ReleaseLock()
+void CPPSocket::ReleaseLock()
 {
-	return pthread_mutex_unlock(&bufferMutex) == 0;
+	bufferMutex.unlock();
 }
 
 //==========================================================================

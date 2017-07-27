@@ -19,7 +19,7 @@
 // Description:		Constructor for MutexLocker class.
 //
 // Input Arguments:
-//		mutex	= pthread_mutex_t& to lock (must have been previously initialized)
+//		mutex	= std::mutex& to lock (must have been previously initialized)
 //
 // Output Arguments:
 //		None
@@ -28,11 +28,9 @@
 //		None
 //
 //==========================================================================
-MutexLocker::MutexLocker(pthread_mutex_t &mutex) : mutex(mutex)
+MutexLocker::MutexLocker(std::mutex &mutex) : mutex(mutex)
 {
-	int errorNumber;
-	if ((errorNumber = pthread_mutex_lock(&mutex)) != 0)
-		std::cout << "Failed to lock mutex:  " << errorNumber << std::endl;
+	mutex.lock();
 }
 
 //==========================================================================
@@ -53,7 +51,5 @@ MutexLocker::MutexLocker(pthread_mutex_t &mutex) : mutex(mutex)
 //==========================================================================
 MutexLocker::~MutexLocker()
 {
-	int errorNumber;
-	if ((errorNumber = pthread_mutex_unlock(&mutex)) != 0)
-		std::cout << "Failed to unlock mutex:  " << errorNumber << std::endl;
+	mutex.unlock();
 }

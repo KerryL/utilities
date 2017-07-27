@@ -9,17 +9,17 @@
 #ifndef MUTEX_HELPER_H_
 #define MUTEX_HELPER_H_
 
-// pThread headers (must be first!)
-#include <pthread.h>
+// Standard C++ headers
+#include <mutex>
 
 class MutexLocker
 {
 public:
-	MutexLocker(pthread_mutex_t &mutex);
+	MutexLocker(std::mutex &mutex);
 	~MutexLocker();
 
 private:
-	pthread_mutex_t &mutex;
+	std::mutex &mutex;
 };
 
 #endif// MUTEX_HELPER_H_

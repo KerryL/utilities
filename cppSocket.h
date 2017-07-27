@@ -6,15 +6,14 @@
 #ifndef CPP_SOCKET_H_
 #define CPP_SOCKET_H_
 
-// pThread headers (must be first!)
-#include <pthread.h>
-
 // Standard C++ headers
 #include <string>
 #include <vector>
 #include <iostream>
 #include <map>
 #include <queue>
+#include <thread>
+#include <mutex>
 
 #ifdef _WIN32
 // Windows headers
@@ -69,9 +68,9 @@ public:
 	// NOTE:  If type == SocketTCPServer, calling method MUST aquire and release mutex when using GetLastMessage
 	DataType* GetLastMessage();
 
-	bool GetLock();
-	bool ReleaseLock();
-	pthread_mutex_t& GetMutex() { return bufferMutex; }
+	void GetLock();
+	void ReleaseLock();
+	std::mutex& GetMutex() { return bufferMutex; }
 	
 	bool SetOption(const int &level, const int &option, const DataType* value, const int &size);
 	bool WaitForSocket(const int &timeout, bool* errorOrHangUp = nullptr);
@@ -123,13 +122,12 @@ private:
 	bool TCPServerSend(const DataType* buffer, const int &bufferSize);
 
 	// TCP server methods and members
-	friend void *LaunchThread(void *pThisSocket);
 	void ListenThreadEntry();
 	void HandleClient(SocketID newSock);
 
 	volatile bool continueListening;
-	pthread_t listenerThread;
-	pthread_mutex_t bufferMutex;
+	std::thread listenerThread;
+	std::mutex bufferMutex;
 	fd_set clients;
 	fd_set readSocks;
 	SocketID maxSock;
