@@ -117,22 +117,17 @@ void TimingUtility::TimeLoop()
 	const Clock::time_point now(Clock::now());
 
 	if (counts[0] > 0)
-	{
-		elapsed = now - loopTime;
-		if (elapsed < timeStep)
-			std::this_thread::sleep_for(timeStep - elapsed);
+		elapsed = now - lastLoopTime;
 
-		if (elapsed > timeStep * warningThreshold)
-			outStream << "Warning:  Elapsed time is greater than time step ("
-				<< FractionalSeconds(elapsed).count() << " > " << FractionalSeconds(timeStep).count() << ")" << std::endl;
-	}
-	else
-	{
-		elapsed = std::chrono::seconds(0);
-		assert(currentIndex == 0);
-	}
+	const Clock::duration sleepTime(timeStep - elapsed);
+	if (elapsed < timeStep)
+		std::this_thread::sleep_for(sleepTime);
 
-	loopTime = now;
+	if (elapsed > timeStep * warningThreshold)
+		outStream << "Warning:  Elapsed time is greater than time step ("
+			<< FractionalSeconds(elapsed).count() << " > " << FractionalSeconds(timeStep).count() << ")" << std::endl;
+
+	lastLoopTime = now + sleepTime;
 	UpdateTimingStatistics();
 	counts[currentIndex]++;
 }
@@ -155,8 +150,7 @@ void TimingUtility::TimeLoop()
 //==========================================================================
 void TimingUtility::UpdateTimingStatistics()
 {
-	const Clock::time_point now(Clock::now());
-
+	const Clock::time_point now(Clock::now());	
 	const Clock::duration totalElapsed(now - lastUpdate);// including sleep
 	lastUpdate = now;
 
@@ -314,44 +308,7 @@ std::string TimingUtility::MakeColumn(std::string s, unsigned int columnWidth, c
 //==========================================================================
 std::string TimingUtility::MakeColumn(Clock::duration value, unsigned int columnWidth) const
 {
-	return MakeColumn(value.count() / 1.0e9, columnWidth);
-}
-
-//==========================================================================
-// Class:			TimingUtility
-// Function:		GetMillisecondsSinceEpoch
-//
-// Description:		Returns the current time in "milliseconds since unix epoch."
-//
-// Input Arguments:
-//		None
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		uint64_t
-//
-//==========================================================================
-uint64_t TimingUtility::GetMillisecondsSinceEpoch()
-{
-	uint64_t seconds = time(NULL);
-	uint64_t msecs;
-#ifdef _WIN32
-	// msec since system was started - keep only the fractional part
-	// Windows doesn't have a similar function, so we just make it up.
-	// Also needs work here (TODO)
-	msecs = 0;
-#else
-	/*struct timeval tp;
-	gettimeofday(&tp);
-	LongLong ms = tp.tv_sec * 1000LL + tp.tv_usec / 1000LL;*/
-	// FIXME:  Linux implementation needs work
-	// See: http://stackoverflow.com/questions/1952290/how-can-i-get-utctime-in-milisecond-since-january-1-1970-in-c-language
-	msecs = 0;
-#endif
-
-	return seconds * 1000LL + msecs;
+	return MakeColumn(FractionalSeconds(value).count(), columnWidth);
 }
 
 //==========================================================================

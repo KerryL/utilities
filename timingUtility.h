@@ -29,17 +29,14 @@ public:
 
 	std::string GetTimingStatistics() const;
 
-	static uint64_t GetMillisecondsSinceEpoch();
 	static void SleepUntil(const Clock::time_point& targetTime);
 
 private:
 	const double warningThreshold;
 	std::ostream &outStream;
 
-	Clock::duration timeStep, elapsed;
-	Clock::time_point loopTime;
-
-	bool loopStarted;
+	Clock::duration timeStep, elapsed = std::chrono::seconds(0);
+	Clock::time_point lastLoopTime;
 
 	// For timing statistics
 	void UpdateTimingStatistics();
