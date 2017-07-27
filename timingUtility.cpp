@@ -121,13 +121,17 @@ void TimingUtility::TimeLoop()
 
 	const Clock::duration sleepTime(timeStep - elapsed);
 	if (elapsed < timeStep)
+	{
 		std::this_thread::sleep_for(sleepTime);
+		lastLoopTime = now + sleepTime;
+	}
+	else// Reset timer to now instead of trying to achieve a time that has already passed
+		lastLoopTime = now;
 
 	if (elapsed > timeStep * warningThreshold)
 		outStream << "Warning:  Elapsed time is greater than time step ("
 			<< FractionalSeconds(elapsed).count() << " > " << FractionalSeconds(timeStep).count() << ")" << std::endl;
 
-	lastLoopTime = now + sleepTime;
 	UpdateTimingStatistics();
 	counts[currentIndex]++;
 }
