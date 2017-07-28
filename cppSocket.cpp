@@ -32,7 +32,6 @@
 
 // Local headers
 #include "cppSocket.h"
-#include "mutexLocker.h"
 
 //==========================================================================
 // Class:			CPPSocket
@@ -543,7 +542,7 @@ void CPPSocket::ListenThreadEntry()
 //==========================================================================
 void CPPSocket::HandleClient(SocketID newSock)
 {
-	MutexLocker lock(bufferMutex);
+	std::lock_guard<std::mutex> lock(bufferMutex);
 
 	int msgSize = DoReceive(newSock, nullptr);
 	clientBuffers[newSock].messageSize = msgSize;
