@@ -37,9 +37,10 @@ When you want to disable profiling, just undefine PROFILE.
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <assert.h>
+#include <cassert>
 #include <utility>
 #include <sstream>
+#include <chrono>
 
 #if defined _WIN32
 #define FUNC_NAME __FUNCTION__
@@ -50,7 +51,7 @@ When you want to disable profiling, just undefine PROFILE.
 class Profiler
 {
 public:
-	static void Start(void)
+	static void Start()
 	{
 		startTime = GetTime();
 	}
@@ -70,7 +71,7 @@ public:
 		entryTimes.pop();
 	}
 
-	static void Print(void)
+	static void Print()
 	{
 		std::cout << std::endl << std::endl;
 		if (!entryTimes.empty())
@@ -106,9 +107,9 @@ private:
 	typedef std::unordered_map<std::string, std::pair<unsigned long long, unsigned long> > NameTimeMap;
 	typedef std::pair<std::string, unsigned long long> FunctionTimePair;
 
-	static unsigned long long GetTime(void)
+	static unsigned long long GetTime()
 	{
-#ifdef _WIN32
+/*#ifdef _WIN32
 		// Below from: http://www.strchr.com/performance_measurements_with_rdtsc
 		__asm
 		{
@@ -122,7 +123,8 @@ private:
 		// To avoid overflow, let's only care about the number of seconds
 		// since approx 2012
 		return ((unsigned long long)ts.tv_sec - 1324512000ULL) * 1000000000ULL + (unsigned long long)ts.tv_nsec;
-#endif
+#endif*/
+		return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 	}
 
 	static NameTimeMap frequencies;
@@ -188,6 +190,7 @@ private:
 #define PROFILER_ENTER Profiler::Enter(FUNC_NAME);
 #define PROFILER_EXIT Profiler::Exit(FUNC_NAME);
 #define PROFILE_THIS_SCOPE ProfilerHelper profilerHelper(FUNC_NAME);
+#define PROFILE_NAMED_SCOPE(x) ProfilerHelper namedHelper(x);
 #define PROFILER_PRINT Profiler::Print();
 
 #else
@@ -196,6 +199,7 @@ private:
 #define PROFILER_ENTER
 #define PROFILER_EXIT
 #define PROFILE_THIS_SCOPE
+#define PROFILE_NAMED_SCOPE(x)
 #define PROFILER_PRINT
 
 #endif// PROFILE
