@@ -73,9 +73,14 @@ public:
 
 	static void Print()
 	{
-		std::cout << std::endl << std::endl;
+		Print(std::cout);
+	}
+
+	static void Print(std::ostream& outStream)
+	{
+		outStream << "\n\n";
 		if (!entryTimes.empty())
-			std::cout << "Warning:  Profiler stack is not empty!" << std::endl;
+			outStream << "Warning:  Profiler stack is not empty!" << std::endl;
 
 		unsigned int maxFunctionNameLength(0);
 		NameTimeMap::iterator it;
@@ -90,17 +95,17 @@ public:
 
 		std::string percentColumnHeader("Percent Time    ");
 		std::string callColumnHeader("Calls");
-		std::cout << RightPadString("Function", maxFunctionNameLength)
+		outStream << RightPadString("Function", maxFunctionNameLength)
 			<< percentColumnHeader << callColumnHeader << std::endl;
-		std::cout << RightPadString("", maxFunctionNameLength
+		outStream << RightPadString("", maxFunctionNameLength
 			+ percentColumnHeader.size() + callColumnHeader.size(), '-') << std::endl;
 
 		for (it = frequencies.begin(); it != frequencies.end(); ++it)
-			std::cout << RightPadString(ExtractShortName(it->first), maxFunctionNameLength)
+			outStream << RightPadString(ExtractShortName(it->first), maxFunctionNameLength)
 			<< RightPadString(ToString((double)it->second.first / totalTime * 100.0) + "%", percentColumnHeader.size())
 			<< it->second.second << std::endl;
 
-		std::cout << std::endl << std::endl;
+		outStream << std::endl << std::endl;
 	}
 
 private:
@@ -192,6 +197,7 @@ private:
 #define PROFILE_THIS_SCOPE ProfilerHelper profilerHelper(FUNC_NAME);
 #define PROFILE_NAMED_SCOPE(x) ProfilerHelper namedHelper(x);
 #define PROFILER_PRINT Profiler::Print();
+#define PROFILER_PRINT_TO(x) Profiler::Print(x);
 
 #else
 
@@ -201,6 +207,7 @@ private:
 #define PROFILE_THIS_SCOPE
 #define PROFILE_NAMED_SCOPE(x)
 #define PROFILER_PRINT
+#define PROFILER_PRINT_TO(x)
 
 #endif// PROFILE
 
