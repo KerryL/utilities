@@ -78,7 +78,6 @@ public:
 
 	static void Print(std::ostream& outStream)
 	{
-		outStream << "\n\n";
 		if (!entryTimes.empty())
 			outStream << "Warning:  Profiler stack is not empty!" << std::endl;
 
@@ -95,17 +94,17 @@ public:
 
 		std::string percentColumnHeader("Percent Time    ");
 		std::string callColumnHeader("Calls");
-		outStream << RightPadString("Function", maxFunctionNameLength)
-			<< percentColumnHeader << callColumnHeader << std::endl;
+		outStream << '\n' << RightPadString("Function", maxFunctionNameLength)
+			<< percentColumnHeader << callColumnHeader << '\n';
 		outStream << RightPadString("", maxFunctionNameLength
-			+ percentColumnHeader.size() + callColumnHeader.size(), '-') << std::endl;
+			+ percentColumnHeader.size() + callColumnHeader.size(), '-') << '\n';
 
 		for (it = frequencies.begin(); it != frequencies.end(); ++it)
 			outStream << RightPadString(ExtractShortName(it->first), maxFunctionNameLength)
 			<< RightPadString(ToString((double)it->second.first / totalTime * 100.0) + "%", percentColumnHeader.size())
-			<< it->second.second << std::endl;
+			<< it->second.second << '\n';
 
-		outStream << std::endl << std::endl;
+		outStream << '\n' << std::endl;
 	}
 
 private:
