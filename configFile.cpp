@@ -30,29 +30,6 @@ const std::string ConfigFile::commentCharacter	= "#";
 
 //==========================================================================
 // Class:			ConfigFile
-// Function:		~ConfigFile
-//
-// Description:		Destructor for ConfigFile class.
-//
-// Input Arguments:
-//		None
-//
-// Output Arguments:
-//		None
-//
-// Return Value:
-//		None
-//
-//==========================================================================
-ConfigFile::~ConfigFile()
-{
-	ConfigItemMap::iterator it;
-	for (it = configItems.begin(); it != configItems.end(); it++)
-		delete it->second;
-}
-
-//==========================================================================
-// Class:			ConfigFile
 // Function:		ReadConfiguration
 //
 // Description:		Reads the configuration from file.

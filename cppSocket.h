@@ -14,6 +14,7 @@
 #include <queue>
 #include <thread>
 #include <mutex>
+#include <memory>
 
 #ifdef _WIN32
 // Windows headers
@@ -109,7 +110,7 @@ private:
 	std::ostream &outStream;
 
 	SocketID sock;
-	DataType* rcvBuffer;
+	std::unique_ptr<DataType[]> rcvBuffer;
 
 	bool Listen();
 	bool Connect(const sockaddr_in &address);
@@ -137,7 +138,7 @@ private:
 	struct BufferInfo
 	{
 		unsigned int messageSize;
-		DataType* buffer;
+		std::unique_ptr<DataType[]> buffer;
 	};
 
 	typedef std::map<SocketID, BufferInfo> ClientBufferMap;

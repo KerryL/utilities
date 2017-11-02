@@ -74,7 +74,7 @@ CPPSocket::CPPSocket(SocketType type, std::ostream& outStream) : type(type), out
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
 
-	rcvBuffer = new DataType[maxMessageSize];
+	rcvBuffer = std::unique_ptr<DataType[]>(new DataType[maxMessageSize]);
 }
 
 //==========================================================================
@@ -96,10 +96,6 @@ CPPSocket::CPPSocket(SocketType type, std::ostream& outStream) : type(type), out
 CPPSocket::~CPPSocket()
 {
 	Destroy();
-
-	delete [] rcvBuffer;
-	rcvBuffer = NULL;
-
 	DeleteClientBuffers();
 }
 
@@ -121,10 +117,6 @@ CPPSocket::~CPPSocket()
 //==========================================================================
 void CPPSocket::DeleteClientBuffers()
 {
-	ClientBufferMap::iterator it;
-	for (it = clientBuffers.begin(); it != clientBuffers.end(); it++)
-		delete [] it->second.buffer;
-
 	clientBuffers.clear();
 }
 
@@ -627,7 +619,6 @@ void CPPSocket::DropClient(const SocketID& sockId)
 	assert(type == SocketTCPServer);
 	RemoveSocketFromSet(sockId, clients);
 
-	delete [] clientBuffers[sockId].buffer;
 	clientBuffers.erase(sockId);
 	failedSendCount.erase(sockId);
 
@@ -779,12 +770,12 @@ CPPSocket::DataType* CPPSocket::GetLastMessage()
 	if (type == SocketTCPServer)
 	{
 		assert(!clientRcvQueue.empty());
-		DataType* data = clientBuffers[clientRcvQueue.front()].buffer;
+		DataType* data(clientBuffers[clientRcvQueue.front()].buffer.get());
 		clientRcvQueue.pop();
 		return data;
 	}
 	else
-		return rcvBuffer;
+		return rcvBuffer.get();
 }
 
 //==========================================================================
@@ -867,17 +858,17 @@ __pragma(warning(disable:4458));
 #endif
 int CPPSocket::DoReceive(SocketID sock, struct sockaddr_in *senderAddr)
 {
-	DataType* useBuffer = rcvBuffer;
+	DataType* useBuffer = rcvBuffer.get();
 	if (type == SocketTCPServer)
 	{
 		ClientBufferMap::iterator it = clientBuffers.find(sock);
 		if (it == clientBuffers.end())
 		{
-			clientBuffers[sock].buffer = new DataType[maxMessageSize];
-			useBuffer = clientBuffers[sock].buffer;
+			clientBuffers[sock].buffer = std::unique_ptr<DataType[]>(new DataType[maxMessageSize]);
+			useBuffer = clientBuffers[sock].buffer.get();
 		}
 		else
-			useBuffer = it->second.buffer;
+			useBuffer = it->second.buffer.get();
 	}
 
 	if (senderAddr)

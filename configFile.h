@@ -18,13 +18,14 @@
 #include <vector>
 #include <errno.h>
 #include <typeinfo>
+#include <memory>
 
 class ConfigFile
 {
 public:
 	ConfigFile(std::ostream &outStream = std::cout)
 		: outStream(outStream) {}
-	virtual ~ConfigFile();
+	virtual ~ConfigFile() = default;
 
 	bool ReadConfiguration(const std::string &fileName);
 	template <typename T>
@@ -43,7 +44,7 @@ protected:
 	{
 	public:
 		virtual ~ConfigItemBase() {}
-		virtual bool AssignValue(const std::string &/*data*/) {return false;};//= 0;
+		virtual bool AssignValue(const std::string &/*data*/) { return false; }
 		
 	protected:
 		ConfigItemBase() {}
@@ -95,7 +96,7 @@ private:
 	void SplitFieldFromData(const std::string &line, std::string &field, std::string &data);
 	void ProcessConfigItem(const std::string &field, const std::string &data);
 
-	typedef std::map<std::string, ConfigItemBase*> ConfigItemMap;
+	typedef std::map<std::string, std::unique_ptr<ConfigItemBase>> ConfigItemMap;
 	ConfigItemMap configItems;
 	std::map<void* const, std::string> keyMap;
 };
@@ -168,8 +169,7 @@ template <typename T>
 void ConfigFile::AddConfigItem(const std::string &key, T& data,
 	typename ConfigItem<T>::ReadFunction reader)
 {
-	ConfigItem<T> *item = new ConfigItem<T>(data, reader);
-	bool success = configItems.insert(std::make_pair(key, item)).second;
+	bool success = configItems.insert(std::make_pair(key, std::make_unique<ConfigItem<T>>(data, reader))).second;
 	assert(success && "failed to add item to forward map");// TODO:  Do something better here
 
 	success = keyMap.insert(std::make_pair((void*)&data, key)).second;
