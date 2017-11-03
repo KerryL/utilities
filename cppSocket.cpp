@@ -1124,7 +1124,7 @@ std::vector<std::string> CPPSocket::GetLocalIPAddress()
 	struct ifaddrs* addresses;
 	if (getifaddrs(&addresses) == SOCKET_ERROR)
 	{
-		/*outStream*/cerr << "  Error getting local addresses: " << GetLastError() << endl;
+		/*outStream*/std::cerr << "  Error getting local addresses: " << GetLastError() << std::endl;
 		return ips;
 	}
 
