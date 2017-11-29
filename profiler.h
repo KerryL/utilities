@@ -64,6 +64,7 @@ public:
 	static void Exit(const char* function)
 	{
 		// Catch cases where the user may have missed a PROFILER_EXIT macro
+		assert(!entryTimes.empty());
 		assert(entryTimes.top().first.compare(function) == 0);
 		frequencies[function] = std::pair<unsigned long long, unsigned long>(
 				frequencies[function].first + GetTime() - entryTimes.top().second,
