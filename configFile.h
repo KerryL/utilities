@@ -346,7 +346,7 @@ template <typename T>
 bool ConfigFile::EnumReader(const std::string &s, T &value)
 {
 	std::stringstream ss(s);
-	std::underlying_type<T>::type tempValue;
+	typename std::underlying_type<T>::type tempValue;
 	if ((ss >> tempValue).fail())
 		return false;
 
