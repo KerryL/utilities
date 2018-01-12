@@ -74,7 +74,7 @@ CPPSocket::CPPSocket(SocketType type, std::ostream& outStream) : type(type), out
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
 
-	rcvBuffer = std::unique_ptr<DataType[]>(new DataType[maxMessageSize]);
+	rcvBuffer.resize(maxMessageSize);
 }
 
 //==========================================================================
@@ -770,12 +770,12 @@ CPPSocket::DataType* CPPSocket::GetLastMessage()
 	if (type == SocketTCPServer)
 	{
 		assert(!clientRcvQueue.empty());
-		DataType* data(clientBuffers[clientRcvQueue.front()].buffer.get());
+		DataType* data(&clientBuffers[clientRcvQueue.front()].buffer.front());
 		clientRcvQueue.pop();
 		return data;
 	}
 	else
-		return rcvBuffer.get();
+		return &rcvBuffer.front();
 }
 
 //==========================================================================
@@ -858,17 +858,17 @@ __pragma(warning(disable:4458));
 #endif
 int CPPSocket::DoReceive(SocketID sock, struct sockaddr_in *senderAddr)
 {
-	DataType* useBuffer = rcvBuffer.get();
+	DataType* useBuffer(&rcvBuffer.front());
 	if (type == SocketTCPServer)
 	{
 		ClientBufferMap::iterator it = clientBuffers.find(sock);
 		if (it == clientBuffers.end())
 		{
-			clientBuffers[sock].buffer = std::unique_ptr<DataType[]>(new DataType[maxMessageSize]);
-			useBuffer = clientBuffers[sock].buffer.get();
+			clientBuffers[sock].buffer.resize(maxMessageSize);
+			useBuffer = &clientBuffers[sock].buffer.front();
 		}
 		else
-			useBuffer = it->second.buffer.get();
+			useBuffer = &it->second.buffer.front();
 	}
 
 	if (senderAddr)
