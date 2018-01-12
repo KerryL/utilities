@@ -18,6 +18,7 @@
 #include <vector>
 #include <errno.h>
 #include <typeinfo>
+#include <type_traits>
 #include <memory>
 
 class ConfigFile
@@ -67,13 +68,17 @@ protected:
 		ReadFunction reader;
 	};
 	
-	void AddConfigItem(const std::string &key, bool& data);
-	void AddConfigItem(const std::string &key, std::string& data);
-	void AddConfigItem(const std::string &key, std::vector<std::string>& data);
+	void AddConfigItem(const std::string& key, bool& data);
+	void AddConfigItem(const std::string& key, std::string& data);
+	void AddConfigItem(const std::string& key, std::vector<std::string>& data);
+	template <typename T, typename std::enable_if<!std::is_enum<T>::value>::type>
+	void AddConfigItem(const std::string& key, T& data);
 	template <typename T>
-	void AddConfigItem(const std::string &key, T& data);
-	template <typename T>
-	void AddConfigItem(const std::string &key, std::vector<T>& data);
+	void AddConfigItem(const std::string& key, std::vector<T>& data);
+	template <typename T, typename std::enable_if<!std::is_enum<T>::value, int>::type = 0>
+	void AddConfigItem(const std::string& key, T& data);
+	template <typename T, typename std::enable_if<std::is_enum<T>::value, int>::type = 0>
+	void AddConfigItem(const std::string& key, T& data);
 	template <typename T>
 	void AddConfigItem(const std::string &key, T& data,
 		typename ConfigItem<T>::ReadFunction reader);
@@ -81,13 +86,15 @@ protected:
 	template <typename T>
 	std::string GetKey(const T& i) const { return (*keyMap.find((void* const)&i)).second; }
 	
-	static bool BoolReader(const std::string &s, bool &value);
-	static bool StringReader(const std::string &s, std::string &value);
-	static bool StringVectorReader(const std::string &s, std::vector<std::string> &value);
+	static bool BoolReader(const std::string& s, bool& value);
+	static bool StringReader(const std::string& s, std::string& value);
+	static bool StringVectorReader(const std::string& s, std::vector<std::string>& value);
 	template <typename T>
-	static bool GenericReader(const std::string &s, T &value);
+	static bool GenericReader(const std::string& s, T& value);
 	template <typename T>
-	static bool VectorReader(const std::string &s, std::vector<T> &v);
+	static bool VectorReader(const std::string& s, std::vector<T>& v);
+	template <typename T>
+	static bool EnumReader(const std::string& s, T& value);
 
 private:
 	static const std::string commentCharacter;
@@ -118,10 +125,33 @@ private:
 //		None
 //
 //==========================================================================
-template <typename T>
+template <typename T, typename std::enable_if<!std::is_enum<T>::value, int>::type>
 void ConfigFile::AddConfigItem(const std::string &key, T& data)
 {
 	AddConfigItem(key, data, GenericReader<T>);
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		AddConfigItem
+//
+// Description:		Adds the specified field key and data reference to the list.
+//
+// Input Arguments:
+//		key		= const std::string&
+//		data	= T& (if enum)
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		None
+//
+//==========================================================================
+template <typename T, typename std::enable_if<std::is_enum<T>::value, int>::type>
+void ConfigFile::AddConfigItem(const std::string& key, T& data)
+{
+	AddConfigItem(key, data, EnumReader<T>);
 }
 
 //==========================================================================
@@ -292,8 +322,36 @@ bool ConfigFile::GenericReader(const std::string &s, T &value)
 		// TODO:  getline or something here so we don't break on/loose spaces
 	}
 	// TODO:  Would be nice to recognize vectors and bools here, too, so we don't have to specify readers for these
-	
+
 	return !(ss >> value).fail();
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		EnumReader
+//
+// Description:		Generic string-to-type function for reading config data.
+//
+// Input Arguments:
+//		s	= const std::string&
+//
+// Output Arguments:
+//		value	= const T&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+template <typename T>
+bool ConfigFile::EnumReader(const std::string &s, T &value)
+{
+	std::stringstream ss(s);
+	typename std::underlying_type<T>::type tempValue;
+	if ((ss >> tempValue).fail())
+		return false;
+
+	value = static_cast<T>(tempValue);
+	return true;
 }
 
 //==========================================================================
