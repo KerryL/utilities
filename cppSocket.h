@@ -109,7 +109,7 @@ private:
 	const SocketType type;
 	std::ostream &outStream;
 
-	SocketID sock;
+	SocketID sock = 0;
 	std::unique_ptr<DataType[]> rcvBuffer;
 
 	bool Listen();
@@ -126,12 +126,12 @@ private:
 	void ListenThreadEntry();
 	void HandleClient(SocketID newSock);
 
-	volatile bool continueListening;
+	volatile bool continueListening = false;
 	std::thread listenerThread;
 	std::mutex bufferMutex;
 	fd_set clients;
 	fd_set readSocks;
-	SocketID maxSock;
+	SocketID maxSock = 0;
 
 	std::map<SocketID, unsigned short> failedSendCount;
 

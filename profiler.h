@@ -176,7 +176,7 @@ private:
 class ProfilerHelper
 {
 public:
-	ProfilerHelper(const char* function) : function(function)
+	explicit ProfilerHelper(const char* function) : function(function)
 	{
 		Profiler::Enter(function);
 	}

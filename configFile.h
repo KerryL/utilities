@@ -23,7 +23,7 @@
 class ConfigFile
 {
 public:
-	ConfigFile(std::ostream &outStream = std::cout)
+	explicit ConfigFile(std::ostream &outStream = std::cout)
 		: outStream(outStream) {}
 	virtual ~ConfigFile() = default;
 
