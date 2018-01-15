@@ -27,8 +27,8 @@
 
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
-#endif
-#endif
+#endif// INVALID_SOCKET
+#endif// _WIN32
 
 // Local headers
 #include "cppSocket.h"

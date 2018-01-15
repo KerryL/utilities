@@ -25,6 +25,7 @@
 #else
 // *nix headers
 #include <sys/select.h>
+static const int SOCKET_ERROR = -1;
 #endif
 
 // Forward declarations
@@ -91,10 +92,6 @@ public:
 	SocketID GetFileDescriptor() const { return sock; }
 
 	std::string GetErrorString() const { return GetLastError(); }
-
-#ifndef WIN32
-	static const int SOCKET_ERROR = -1;
-#endif
 
 	static const unsigned int maxMessageSize;
 
