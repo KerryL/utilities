@@ -27,7 +27,7 @@ When you want to disable profiling, just undefine PROFILE.
 #define PROFILER_H_
 
 // Comment out the line below to disable profiling
-#define PROFILE
+//#define PROFILE
 
 #ifdef PROFILE
 
@@ -41,12 +41,45 @@ When you want to disable profiling, just undefine PROFILE.
 #include <utility>
 #include <sstream>
 #include <chrono>
+#include <thread>
+#include <mutex>
 
 #if defined _WIN32
 #define FUNC_NAME __FUNCTION__
 #else
 #define FUNC_NAME __PRETTY_FUNCTION__
 #endif
+
+struct FunctionThread
+{
+	FunctionThread(const std::string& function, const std::thread::id& threadId) : function(function), threadId(threadId) {}
+	std::string function;
+	std::thread::id threadId;
+
+	bool operator==(const FunctionThread& other) const
+	{
+		return function.compare(other.function) == 0 &&
+			threadId == other.threadId;
+	}
+};
+
+// Specialized hash for FunctionThread
+namespace std
+{
+template <>
+struct hash<FunctionThread>
+{
+	size_t operator()(const FunctionThread& key) const
+	{
+		// Compute individual hash values for first,
+		// second and third and combine them using XOR
+		// and bit shifting:
+
+		return (hash<std::string>()(key.function)
+			^ (hash<std::thread::id>()(key.threadId) << 1));
+	}
+};
+}
 
 class Profiler
 {
@@ -56,20 +89,32 @@ public:
 		startTime = GetTime();
 	}
 
-	static void Enter(const char* function)
+	static void Enter(const std::string& function)
 	{
-		entryTimes.push(FunctionTimePair(function, GetTime()));
+		std::lock_guard<std::mutex> lock(entryMutex);
+		entryTimes[std::this_thread::get_id()].push(std::make_pair(function, GetTime()));
 	}
 
-	static void Exit(const char* function)
+	static void Exit(const std::string& function)
 	{
+		const auto id(std::this_thread::get_id());
+
 		// Catch cases where the user may have missed a PROFILER_EXIT macro
-		assert(!entryTimes.empty());
-		assert(entryTimes.top().first.compare(function) == 0);
-		frequencies[function] = std::pair<unsigned long long, unsigned long>(
-				frequencies[function].first + GetTime() - entryTimes.top().second,
-				frequencies[function].second + 1);
-		entryTimes.pop();
+		assert(entryTimes.find(id) != entryTimes.end());
+		assert(!entryTimes[id].empty());
+		assert(entryTimes[id].top().first.compare(function) == 0);
+
+		const FunctionThread identifier(function, std::this_thread::get_id());
+
+		{
+			std::lock_guard<std::mutex> lock(frequencyMutex);// It appears that the addition of these locks had a significant impact on execution time, and therefore the results may not be reliable...
+			frequencies[identifier] = std::make_pair(
+				frequencies[identifier].first + GetTime() - entryTimes[id].top().second,
+				frequencies[identifier].second + 1);
+		}
+
+		std::lock_guard<std::mutex> lock(entryMutex);
+		entryTimes[id].pop();
 	}
 
 	static void Print()
@@ -79,15 +124,23 @@ public:
 
 	static void Print(std::ostream& outStream)
 	{
-		if (!entryTimes.empty())
-			outStream << "Warning:  Profiler stack is not empty!" << std::endl;
-
-		unsigned int maxFunctionNameLength(0);
-		NameTimeMap::iterator it;
-		for (it = frequencies.begin(); it != frequencies.end(); ++it)
+		std::lock_guard<std::mutex> entryTimesLock(entryMutex);
+		auto etIt(entryTimes.cbegin());
+		for (; etIt != entryTimes.end(); ++etIt)
 		{
-			if (ExtractShortName(it->first).size() > maxFunctionNameLength)
-				maxFunctionNameLength = ExtractShortName(it->first).size();
+			if (!etIt->second.empty())
+				outStream << "Warning:  Profiler stack is not empty for thread " << etIt->first << std::endl;
+		}
+
+		// TODO:  Add up time spent in methods on different threads?  Better to show it separately?
+
+		std::lock_guard<std::mutex> frequencyLock(frequencyMutex);
+		unsigned int maxFunctionNameLength(0);
+		auto it(frequencies.cbegin());
+		for (; it != frequencies.end(); ++it)
+		{
+			if (ExtractShortName(it->first.function).size() > maxFunctionNameLength)
+				maxFunctionNameLength = ExtractShortName(it->first.function).size();
 		}
 		maxFunctionNameLength += 10;
 
@@ -101,7 +154,7 @@ public:
 			+ percentColumnHeader.size() + callColumnHeader.size(), '-') << '\n';
 
 		for (it = frequencies.begin(); it != frequencies.end(); ++it)
-			outStream << RightPadString(ExtractShortName(it->first), maxFunctionNameLength)
+			outStream << RightPadString(ExtractShortName(it->first.function), maxFunctionNameLength)
 			<< RightPadString(ToString((double)it->second.first / totalTime * 100.0) + "%", percentColumnHeader.size())
 			<< it->second.second << '\n';
 
@@ -109,7 +162,7 @@ public:
 	}
 
 private:
-	typedef std::unordered_map<std::string, std::pair<unsigned long long, unsigned long> > NameTimeMap;
+	typedef std::unordered_map<FunctionThread, std::pair<unsigned long long, unsigned long>> NameTimeMap;
 	typedef std::pair<std::string, unsigned long long> FunctionTimePair;
 
 	static unsigned long long GetTime()
@@ -133,8 +186,11 @@ private:
 	}
 
 	static NameTimeMap frequencies;
-	static std::stack<FunctionTimePair> entryTimes;
+	static std::unordered_map<std::thread::id, std::stack<FunctionTimePair>> entryTimes;
 	static unsigned long long startTime;
+
+	static std::mutex entryMutex;
+	static std::mutex frequencyMutex;
 
 	static std::string RightPadString(const std::string &s, const unsigned int &l, const char c = ' ')
 	{

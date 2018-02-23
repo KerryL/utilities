@@ -10,6 +10,8 @@
 
 unsigned long long Profiler::startTime;
 Profiler::NameTimeMap Profiler::frequencies;
-std::stack<Profiler::FunctionTimePair> Profiler::entryTimes;
+std::unordered_map<std::thread::id, std::stack<Profiler::FunctionTimePair>> Profiler::entryTimes;
+std::mutex Profiler::entryMutex;
+std::mutex Profiler::frequencyMutex;
 
 #endif// PROFILE
