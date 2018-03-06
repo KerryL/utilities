@@ -211,6 +211,15 @@ void CPPSocket::Destroy()
 		clientRcvQueue.pop();
 
 #ifdef WIN32
+	const int shutdownHow(SD_BOTH);
+#else
+	const int shutdownHow(SHUT_RDWR);
+#endif
+
+	if (shutdown(sock, shutdownHow) != 0)// NOTE:  Winsock error 10057 "socket not connected" is normal here, if the connection was never established (TCP only)
+		outStream << "Failed to shut down socket " << sock << ":  " << GetErrorString() << std::endl;
+
+#ifdef WIN32
 	closesocket(sock);
 	WSACleanup();
 #else
