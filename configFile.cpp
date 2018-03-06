@@ -4,11 +4,11 @@
 // Copy:  (c) Copyright 2013
 // Desc:  Generic (abstract) config file class.
 
-// Standard C++ headers
-#include <algorithm>
-
 // Local headers
 #include "configFile.h"
+
+// Standard C++ headers
+#include <algorithm>
 
 //==========================================================================
 // Class:			ConfigFile
@@ -26,7 +26,7 @@
 //		None
 //
 //==========================================================================
-const std::string ConfigFile::commentCharacter	= "#";
+const String ConfigFile::commentCharacter = _T("#");
 
 //==========================================================================
 // Class:			ConfigFile
@@ -35,7 +35,7 @@ const std::string ConfigFile::commentCharacter	= "#";
 // Description:		Reads the configuration from file.
 //
 // Input Arguments:
-//		fileName	= const std::string&
+//		fileName	= const String&
 //
 // Output Arguments:
 //		None
@@ -44,7 +44,7 @@ const std::string ConfigFile::commentCharacter	= "#";
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::ReadConfiguration(const std::string &fileName)
+bool ConfigFile::ReadConfiguration(const String &fileName)
 {
 	if (configItems.size() == 0)
 		BuildConfigItems();
@@ -53,14 +53,14 @@ bool ConfigFile::ReadConfiguration(const std::string &fileName)
 
 	outStream << "Reading configuration from '" << fileName << "'" << std::endl;
 
-	std::ifstream file(fileName.c_str(), std::ios::in);
+	IFStream file(fileName.c_str(), std::ios::in);
 	if (!file.is_open() || !file.good())
 	{
 		outStream << "Unable to open file '" << fileName << "' for input" << std::endl;
 		return false;
 	}
 
-	std::string line, field, data;
+	String line, field, data;
 	size_t inLineComment;
 
 	while (std::getline(file, line))
@@ -90,7 +90,7 @@ bool ConfigFile::ReadConfiguration(const std::string &fileName)
 // Description:		Adds the specified field key and data reference to the list.
 //
 // Input Arguments:
-//		key		= const std::string&
+//		key		= const String&
 //		data	= bool&
 //
 // Output Arguments:
@@ -100,7 +100,7 @@ bool ConfigFile::ReadConfiguration(const std::string &fileName)
 //		None
 //
 //==========================================================================
-void ConfigFile::AddConfigItem(const std::string &key, bool& data)
+void ConfigFile::AddConfigItem(const String &key, bool& data)
 {
 	AddConfigItem(key, data, BoolReader);
 }
@@ -112,8 +112,8 @@ void ConfigFile::AddConfigItem(const std::string &key, bool& data)
 // Description:		Adds the specified field key and data reference to the list.
 //
 // Input Arguments:
-//		key		= const std::string&
-//		data	= std::string&
+//		key		= const String&
+//		data	= String&
 //
 // Output Arguments:
 //		None
@@ -122,7 +122,7 @@ void ConfigFile::AddConfigItem(const std::string &key, bool& data)
 //		None
 //
 //==========================================================================
-void ConfigFile::AddConfigItem(const std::string &key, std::string& data)
+void ConfigFile::AddConfigItem(const String &key, String& data)
 {
 	AddConfigItem(key, data, StringReader);
 }
@@ -134,8 +134,8 @@ void ConfigFile::AddConfigItem(const std::string &key, std::string& data)
 // Description:		Adds the specified field key and data reference to the list.
 //
 // Input Arguments:
-//		key		= const std::string&
-//		data	= std::vector<std::string>&
+//		key		= const String&
+//		data	= std::vector<String>&
 //
 // Output Arguments:
 //		None
@@ -144,7 +144,7 @@ void ConfigFile::AddConfigItem(const std::string &key, std::string& data)
 //		None
 //
 //==========================================================================
-void ConfigFile::AddConfigItem(const std::string &key, std::vector<std::string>& data)
+void ConfigFile::AddConfigItem(const String &key, std::vector<String>& data)
 {
 	AddConfigItem(key, data, StringVectorReader);
 }
@@ -159,23 +159,23 @@ void ConfigFile::AddConfigItem(const std::string &key, std::vector<std::string>&
 //					or spaces).
 //
 // Input Arguments:
-//		line	= const std::string&
+//		line	= const String&
 //
 // Output Arguments:
-//		field	= std::string&
-//		data	= std::string&
+//		field	= String&
+//		data	= String&
 //
 // Return Value:
 //		None
 //
 //==========================================================================
-void ConfigFile::SplitFieldFromData(const std::string &line,
-	std::string &field, std::string &data)
+void ConfigFile::SplitFieldFromData(const String &line,
+	String &field, String &data)
 {
 	// Break out the line into a field and the data (data may
 	// contain spaces or equal sign!)
-	size_t spaceLoc = line.find_first_of(" ");
-	size_t equalLoc = line.find_first_of("=");
+	size_t spaceLoc = line.find_first_of(_T(" "));
+	size_t equalLoc = line.find_first_of(_T("="));
 	field = line.substr(0, std::min(spaceLoc, equalLoc));
 
 	if (spaceLoc == std::string::npos &&
@@ -191,8 +191,8 @@ void ConfigFile::SplitFieldFromData(const std::string &line,
 		equalLoc = spaceLoc;
 
 	size_t startData = std::max(spaceLoc, equalLoc) + 1;
-	spaceLoc = line.find_first_not_of(" ", startData);
-	equalLoc = line.find_first_not_of("=", startData);
+	spaceLoc = line.find_first_not_of(_T(" "), startData);
+	equalLoc = line.find_first_not_of(_T("="), startData);
 
 	if (spaceLoc == std::string::npos)
 		spaceLoc = equalLoc;
@@ -210,8 +210,8 @@ void ConfigFile::SplitFieldFromData(const std::string &line,
 // Description:		Processes the specified configuration item.
 //
 // Input Arguments:
-//		field	= const std::string&
-//		data	= const std::string&
+//		field	= const String&
+//		data	= const String&
 //
 // Output Arguments:
 //		None
@@ -220,7 +220,7 @@ void ConfigFile::SplitFieldFromData(const std::string &line,
 //		None
 //
 //==========================================================================
-void ConfigFile::ProcessConfigItem(const std::string &field, const std::string &data)
+void ConfigFile::ProcessConfigItem(const String &field, const String &data)
 {
 	if (configItems.count(field) > 0)
 		(*configItems.find(field)).second->AssignValue(data);
@@ -238,7 +238,7 @@ void ConfigFile::ProcessConfigItem(const std::string &field, const std::string &
 //					interpreted as true).
 //
 // Input Arguments:
-//		data	= const std::string&
+//		data	= const String&
 //
 // Output Arguments:
 //		value	= bool&
@@ -247,9 +247,9 @@ void ConfigFile::ProcessConfigItem(const std::string &field, const std::string &
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::BoolReader(const std::string &data, bool &value)
+bool ConfigFile::BoolReader(const String &data, bool &value)
 {
-	value = data.compare("1") == 0 || data.empty();
+	value = data.compare(_T("1")) == 0 || data.empty();
 	return true;
 }
 
@@ -260,16 +260,16 @@ bool ConfigFile::BoolReader(const std::string &data, bool &value)
 // Description:		Reads the specified data into another string.
 //
 // Input Arguments:
-//		data	= const std::string&
+//		data	= const String&
 //
 // Output Arguments:
-//		value	= std::string&
+//		value	= String&
 //
 // Return Value:
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::StringReader(const std::string &data, std::string &value)
+bool ConfigFile::StringReader(const String &data, String &value)
 {
 	value = data;
 	return true;
@@ -282,18 +282,18 @@ bool ConfigFile::StringReader(const std::string &data, std::string &value)
 // Description:		Reads the specified data into another string.
 //
 // Input Arguments:
-//		data	= const std::string&
+//		data	= const String&
 //
 // Output Arguments:
-//		value	= std::string&
+//		value	= String&
 //
 // Return Value:
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::StringVectorReader(const std::string &data, std::vector<std::string> &value)
+bool ConfigFile::StringVectorReader(const String &data, std::vector<String> &value)
 {
-	std::string s;
+	String s;
 	if (!StringReader(data, s))
 		return false;
 	value.push_back(s);
@@ -308,16 +308,16 @@ bool ConfigFile::StringVectorReader(const std::string &data, std::vector<std::st
 //					we're reading Windows-generated files on a Linux system.
 //
 // Input Arguments:
-//		s	= std::string&
+//		s	= String&
 //
 // Output Arguments:
-//		s	= std::string&
+//		s	= String&
 //
 // Return Value:
 //		None
 //
 //==========================================================================
-void ConfigFile::StripCarriageReturn(std::string &s) const
+void ConfigFile::StripCarriageReturn(String &s) const
 {
 	if (!s.empty() && *s.rbegin() == '\r')
 		s.erase(s.length() - 1);
