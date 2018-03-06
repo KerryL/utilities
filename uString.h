@@ -63,25 +63,63 @@ typedef std::regex RegEx;
 namespace UString
 {
 
-inline String ToStringType(const std::string& narrow)
+// Active when String == std::wstring //////
+template<class S = String>
+inline String ToStringType(const typename std::enable_if<std::is_same<S, std::wstring>::value, std::string>::type& narrow)
 {
-	String newString(narrow.length(), Char(' '));
-	std::copy(narrow.begin(), narrow.end(), newString.begin());
-	return newString;
+	static_assert(std::is_same<S, std::wstring>::value, "Must not specify template argument");
+	std::wstring_convert<std::codecvt_utf8<Char>, Char> converter;
+	return converter.from_bytes(narrow);
 }
 
-template<class S>
-std::string ToNarrowString(const typename std::enable_if<std::is_same<String, std::string>::value, S>::type& s)
+template<class S = String>
+inline String ToStringType(const typename std::enable_if<std::is_same<String, std::wstring>::value, S>::type& wide)
 {
-	return s;
+	return wide;
 }
 
-template<class S>
-std::string ToNarrowString(const typename std::enable_if<!std::is_same<String, std::string>::value, S>::type& s)
+template<class S = String>
+inline std::string ToNarrowString(const typename std::enable_if<std::is_same<String, std::wstring>::value, S>::type& s)
 {
 	std::wstring_convert<std::codecvt_utf8<Char>, Char> converter;
 	return converter.to_bytes(s);
 }
+
+template<class S = String>
+inline std::wstring ToWideString(const typename std::enable_if<std::is_same<String, std::wstring>::value, S>::type& s)
+{
+	return s;
+}
+////////////////////////////////////////////
+
+// Active when String == std::string ///////
+template<class S = String>
+inline String ToStringType(const typename std::enable_if<std::is_same<String, std::string>::value, S>::type& narrow)
+{
+	return narrow;
+}
+
+template<class S = String>
+inline String ToStringType(const typename std::enable_if<std::is_same<S, std::string>::value, std::wstring>::type& wide)
+{
+	static_assert(std::is_same<S, std::string>::value, "Must not specify template argument");
+	std::wstring_convert<std::codecvt_utf8<Char>, Char> converter;
+	return converter.to_bytes(wide);
+}
+
+template<class S = String>
+inline std::string ToNarrowString(const typename std::enable_if<std::is_same<String, std::string>::value, S>::type& s)
+{
+	return s;
+}
+
+template<class S = String>
+inline std::wstring ToWideString(const typename std::enable_if<std::is_same<String, std::string>::value, S>::type& s)
+{
+	std::wstring_convert<std::codecvt_utf8<Char>, Char> converter;
+	return converter.from_bytes(s);
+}
+////////////////////////////////////////////
 
 }// UString
 

@@ -107,46 +107,96 @@ void ConfigFile::AddConfigItem(const String &key, bool& data)
 
 //==========================================================================
 // Class:			ConfigFile
-// Function:		AddConfigItem
+// Function:		StringReader
 //
-// Description:		Adds the specified field key and data reference to the list.
+// Description:		Reads the specified data into another string.
 //
 // Input Arguments:
-//		key		= const String&
-//		data	= String&
+//		data	= const String&
 //
 // Output Arguments:
-//		None
+//		value	= std::string&
 //
 // Return Value:
-//		None
+//		bool, true for success, false otherwise
 //
 //==========================================================================
-void ConfigFile::AddConfigItem(const String &key, String& data)
+bool ConfigFile::StringReader(const String &data, std::string &value)
 {
-	AddConfigItem(key, data, StringReader);
+	value = UString::ToNarrowString(data);
+	return true;
 }
 
 //==========================================================================
 // Class:			ConfigFile
-// Function:		AddConfigItem
+// Function:		StringReader
 //
-// Description:		Adds the specified field key and data reference to the list.
+// Description:		Reads the specified data into another string.
 //
 // Input Arguments:
-//		key		= const String&
-//		data	= std::vector<String>&
+//		data	= const String&
 //
 // Output Arguments:
-//		None
+//		value	= std::wstring&
 //
 // Return Value:
-//		None
+//		bool, true for success, false otherwise
 //
 //==========================================================================
-void ConfigFile::AddConfigItem(const String &key, std::vector<String>& data)
+bool ConfigFile::StringReader(const String &data, std::wstring &value)
 {
-	AddConfigItem(key, data, StringVectorReader);
+	value = UString::ToWideString(data);
+	return true;
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		StringVectorReader
+//
+// Description:		Reads the specified data into another string.
+//
+// Input Arguments:
+//		data	= const String&
+//
+// Output Arguments:
+//		value	= std::vector<std::string>&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+bool ConfigFile::StringVectorReader(const String &data, std::vector<std::string> &value)
+{
+	String s;
+	if (!StringReader(data, s))
+		return false;
+	value.push_back(UString::ToNarrowString(s));
+	return true;
+}
+
+//==========================================================================
+// Class:			ConfigFile
+// Function:		StringVectorReader
+//
+// Description:		Reads the specified data into another string.
+//
+// Input Arguments:
+//		data	= const String&
+//
+// Output Arguments:
+//		value	= std::vector<std::wstring>&
+//
+// Return Value:
+//		bool, true for success, false otherwise
+//
+//==========================================================================
+bool ConfigFile::StringVectorReader(const String &data, std::vector<std::wstring> &value)
+{
+	String s;
+	if (!StringReader(data, s))
+		return false;
+	value.push_back(UString::ToWideString(s));
+	return true;
 }
 
 //==========================================================================
@@ -250,53 +300,6 @@ void ConfigFile::ProcessConfigItem(const String &field, const String &data)
 bool ConfigFile::BoolReader(const String &data, bool &value)
 {
 	value = data.compare(_T("1")) == 0 || data.empty();
-	return true;
-}
-
-//==========================================================================
-// Class:			ConfigFile
-// Function:		StringReader
-//
-// Description:		Reads the specified data into another string.
-//
-// Input Arguments:
-//		data	= const String&
-//
-// Output Arguments:
-//		value	= String&
-//
-// Return Value:
-//		bool, true for success, false otherwise
-//
-//==========================================================================
-bool ConfigFile::StringReader(const String &data, String &value)
-{
-	value = data;
-	return true;
-}
-
-//==========================================================================
-// Class:			ConfigFile
-// Function:		StringReader
-//
-// Description:		Reads the specified data into another string.
-//
-// Input Arguments:
-//		data	= const String&
-//
-// Output Arguments:
-//		value	= String&
-//
-// Return Value:
-//		bool, true for success, false otherwise
-//
-//==========================================================================
-bool ConfigFile::StringVectorReader(const String &data, std::vector<String> &value)
-{
-	String s;
-	if (!StringReader(data, s))
-		return false;
-	value.push_back(s);
 	return true;
 }
 
