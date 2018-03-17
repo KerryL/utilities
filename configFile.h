@@ -279,7 +279,7 @@ template <typename T>
 bool ConfigFile::WriteConfiguration(const String &fileName,
 	const String &field, const T &value)
 {
-	IFstream inFile(fileName.c_str(), std::ios::in);
+	IFStream inFile(fileName.c_str(), std::ios::in);
 	if (!inFile.is_open() || !inFile.good())
 	{
 		outStream << "Failed to open '" << fileName << "'" << std::endl;
@@ -287,7 +287,7 @@ bool ConfigFile::WriteConfiguration(const String &fileName,
 	}
 
 	String tempFileName("tempConfigFile");
-	OFstream outFile(tempFileName.c_str(), std::ios::out);
+	OFStream outFile(tempFileName.c_str(), std::ios::out);
 	if (!outFile.is_open() || !outFile.good())
 	{
 		outStream << "Failed to open '" << tempFileName << "'" << std::endl;
@@ -315,7 +315,7 @@ bool ConfigFile::WriteConfiguration(const String &fileName,
 			SplitFieldFromData(line, currentField, data);
 			if (currentField.compare(field) == 0)
 			{
-				Stringstream ss;
+				StringStream ss;
 				ss << field << " = " << value;
 				line = ss.str();
 				written = true;
