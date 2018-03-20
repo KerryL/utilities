@@ -103,7 +103,7 @@ template<class S = String>
 inline String ToStringType(const typename std::enable_if<std::is_same<S, std::string>::value, std::wstring>::type& wide)
 {
 	static_assert(std::is_same<S, std::string>::value, "Must not specify template argument");
-	std::wstring_convert<std::codecvt_utf8<Char>, Char> converter;
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
 	return converter.to_bytes(wide);
 }
 
@@ -116,7 +116,7 @@ inline std::string ToNarrowString(const typename std::enable_if<std::is_same<Str
 template<class S = String>
 inline std::wstring ToWideString(const typename std::enable_if<std::is_same<String, std::string>::value, S>::type& s)
 {
-	std::wstring_convert<std::codecvt_utf8<Char>, Char> converter;
+	std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
 	return converter.from_bytes(s);
 }
 ////////////////////////////////////////////
