@@ -7,6 +7,9 @@
 #ifndef MUTEX_UTILITIES_H_
 #define MUTEX_UTILITIES_H_
 
+// Local headers
+#include "uString.h"
+
 // Standard C++ headers
 #include <shared_mutex>
 #include <mutex>
@@ -32,8 +35,6 @@ private:
 class AccessManager
 {
 public:
-	AccessManager();
-
 	bool TryAccess(const String& key);
 	void WaitOn(const String& key);
 
@@ -51,7 +52,7 @@ public:
 private:
 	std::vector<String> list;
 	std::shared_mutex listMutex;
-	std::condition_variable accessFinishedCondition;
+	std::condition_variable_any accessFinishedCondition;
 
 	void Notify(const String& key);
 };
