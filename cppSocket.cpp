@@ -1214,7 +1214,7 @@ std::string CPPSocket::GetTypeString(SocketType type)
 	else if (type == SocketUDPServer)
 		return "UDP Server";
 	else if (type == SocketUDPClient)
-		return "UPD Client";
+		return "UDP Client";
 	else if (type == SocketICMP)
 		return "IMCP";
 	else
