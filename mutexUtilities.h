@@ -35,26 +35,26 @@ private:
 class AccessManager
 {
 public:
-	bool TryAccess(const String& key);
-	void WaitOn(const String& key);
+	bool TryAccess(const UString::String& key);
+	void WaitOn(const UString::String& key);
 
 	class AccessHelper
 	{
 	public:
-		AccessHelper(const String& key, AccessManager& manager) : key(key), manager(manager) {}
+		AccessHelper(const UString::String& key, AccessManager& manager) : key(key), manager(manager) {}
 		~AccessHelper() { manager.Notify(key); }
 
 	private:
-		const String key;
+		const UString::String key;
 		AccessManager& manager;
 	};
 
 private:
-	std::vector<String> list;
+	std::vector<UString::String> list;
 	std::shared_mutex listMutex;
 	std::condition_variable_any accessFinishedCondition;
 
-	void Notify(const String& key);
+	void Notify(const UString::String& key);
 };
 
 }// MutexUtilities

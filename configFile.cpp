@@ -26,7 +26,7 @@
 //		None
 //
 //==========================================================================
-const String ConfigFile::commentCharacter = _T("#");
+const UString::String ConfigFile::commentCharacter = _T("#");
 
 //==========================================================================
 // Class:			ConfigFile
@@ -35,7 +35,7 @@ const String ConfigFile::commentCharacter = _T("#");
 // Description:		Reads the configuration from file.
 //
 // Input Arguments:
-//		fileName	= const String&
+//		fileName	= const UString::String&
 //
 // Output Arguments:
 //		None
@@ -44,7 +44,7 @@ const String ConfigFile::commentCharacter = _T("#");
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::ReadConfiguration(const String &fileName)
+bool ConfigFile::ReadConfiguration(const UString::String &fileName)
 {
 	if (configItems.size() == 0)
 		BuildConfigItems();
@@ -53,14 +53,14 @@ bool ConfigFile::ReadConfiguration(const String &fileName)
 
 	outStream << "Reading configuration from '" << fileName << "'" << std::endl;
 
-	IFStream file(fileName.c_str(), std::ios::in);
+	UString::IFStream file(fileName.c_str(), std::ios::in);
 	if (!file.is_open() || !file.good())
 	{
 		outStream << "Unable to open file '" << fileName << "' for input" << std::endl;
 		return false;
 	}
 
-	String line, field, data;
+	UString::String line, field, data;
 	size_t inLineComment;
 
 	while (std::getline(file, line))
@@ -90,7 +90,7 @@ bool ConfigFile::ReadConfiguration(const String &fileName)
 // Description:		Adds the specified field key and data reference to the list.
 //
 // Input Arguments:
-//		key		= const String&
+//		key		= const UString::String&
 //		data	= bool&
 //
 // Output Arguments:
@@ -100,7 +100,7 @@ bool ConfigFile::ReadConfiguration(const String &fileName)
 //		None
 //
 //==========================================================================
-void ConfigFile::AddConfigItem(const String &key, bool& data)
+void ConfigFile::AddConfigItem(const UString::String &key, bool& data)
 {
 	AddConfigItem(key, data, BoolReader);
 }
@@ -109,10 +109,10 @@ void ConfigFile::AddConfigItem(const String &key, bool& data)
 // Class:			ConfigFile
 // Function:		StringReader
 //
-// Description:		Reads the specified data into another string.
+// Description:		Reads the specified data into another UString::.
 //
 // Input Arguments:
-//		data	= const String&
+//		data	= const UString::String&
 //
 // Output Arguments:
 //		value	= std::string&
@@ -121,7 +121,7 @@ void ConfigFile::AddConfigItem(const String &key, bool& data)
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::StringReader(const String &data, std::string &value)
+bool ConfigFile::StringReader(const UString::String &data, std::string &value)
 {
 	value = UString::ToNarrowString(data);
 	return true;
@@ -131,10 +131,10 @@ bool ConfigFile::StringReader(const String &data, std::string &value)
 // Class:			ConfigFile
 // Function:		StringReader
 //
-// Description:		Reads the specified data into another string.
+// Description:		Reads the specified data into another UString::.
 //
 // Input Arguments:
-//		data	= const String&
+//		data	= const UString::String&
 //
 // Output Arguments:
 //		value	= std::wstring&
@@ -143,7 +143,7 @@ bool ConfigFile::StringReader(const String &data, std::string &value)
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::StringReader(const String &data, std::wstring &value)
+bool ConfigFile::StringReader(const UString::String &data, std::wstring &value)
 {
 	value = UString::ToWideString(data);
 	return true;
@@ -153,10 +153,10 @@ bool ConfigFile::StringReader(const String &data, std::wstring &value)
 // Class:			ConfigFile
 // Function:		StringVectorReader
 //
-// Description:		Reads the specified data into another string.
+// Description:		Reads the specified data into another UString::.
 //
 // Input Arguments:
-//		data	= const String&
+//		data	= const UString::String&
 //
 // Output Arguments:
 //		value	= std::vector<std::string>&
@@ -165,9 +165,9 @@ bool ConfigFile::StringReader(const String &data, std::wstring &value)
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::StringVectorReader(const String &data, std::vector<std::string> &value)
+bool ConfigFile::StringVectorReader(const UString::String &data, std::vector<std::string> &value)
 {
-	String s;
+	UString::String s;
 	if (!StringReader(data, s))
 		return false;
 	value.push_back(UString::ToNarrowString(s));
@@ -178,10 +178,10 @@ bool ConfigFile::StringVectorReader(const String &data, std::vector<std::string>
 // Class:			ConfigFile
 // Function:		StringVectorReader
 //
-// Description:		Reads the specified data into another string.
+// Description:		Reads the specified data into another UString::.
 //
 // Input Arguments:
-//		data	= const String&
+//		data	= const UString::String&
 //
 // Output Arguments:
 //		value	= std::vector<std::wstring>&
@@ -190,9 +190,9 @@ bool ConfigFile::StringVectorReader(const String &data, std::vector<std::string>
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::StringVectorReader(const String &data, std::vector<std::wstring> &value)
+bool ConfigFile::StringVectorReader(const UString::String &data, std::vector<std::wstring> &value)
 {
-	String s;
+	UString::String s;
 	if (!StringReader(data, s))
 		return false;
 	value.push_back(UString::ToWideString(s));
@@ -209,18 +209,18 @@ bool ConfigFile::StringVectorReader(const String &data, std::vector<std::wstring
 //					or spaces).
 //
 // Input Arguments:
-//		line	= const String&
+//		line	= const UString::String&
 //
 // Output Arguments:
-//		field	= String&
-//		data	= String&
+//		field	= UString::String&
+//		data	= UString::String&
 //
 // Return Value:
 //		None
 //
 //==========================================================================
-void ConfigFile::SplitFieldFromData(const String &line,
-	String &field, String &data)
+void ConfigFile::SplitFieldFromData(const UString::String &line,
+	UString::String &field, UString::String &data)
 {
 	// Break out the line into a field and the data (data may
 	// contain spaces or equal sign!)
@@ -260,8 +260,8 @@ void ConfigFile::SplitFieldFromData(const String &line,
 // Description:		Processes the specified configuration item.
 //
 // Input Arguments:
-//		field	= const String&
-//		data	= const String&
+//		field	= const UString::String&
+//		data	= const UString::String&
 //
 // Output Arguments:
 //		None
@@ -270,7 +270,7 @@ void ConfigFile::SplitFieldFromData(const String &line,
 //		None
 //
 //==========================================================================
-void ConfigFile::ProcessConfigItem(const String &field, const String &data)
+void ConfigFile::ProcessConfigItem(const UString::String &field, const UString::String &data)
 {
 	if (configItems.count(field) > 0)
 		(*configItems.find(field)).second->AssignValue(data);
@@ -288,7 +288,7 @@ void ConfigFile::ProcessConfigItem(const String &field, const String &data)
 //					interpreted as true).
 //
 // Input Arguments:
-//		data	= const String&
+//		data	= const UString::String&
 //
 // Output Arguments:
 //		value	= bool&
@@ -297,7 +297,7 @@ void ConfigFile::ProcessConfigItem(const String &field, const String &data)
 //		bool, true for success, false otherwise
 //
 //==========================================================================
-bool ConfigFile::BoolReader(const String &data, bool &value)
+bool ConfigFile::BoolReader(const UString::String &data, bool &value)
 {
 	value = data.compare(_T("1")) == 0 || data.empty();
 	return true;
@@ -307,20 +307,20 @@ bool ConfigFile::BoolReader(const String &data, bool &value)
 // Class:			ConfigFile
 // Function:		StripCarriageReturn
 //
-// Description:		Removes the '\r' from the end of the string, in case
+// Description:		Removes the '\r' from the end of the UString::, in case
 //					we're reading Windows-generated files on a Linux system.
 //
 // Input Arguments:
-//		s	= String&
+//		s	= UString::String&
 //
 // Output Arguments:
-//		s	= String&
+//		s	= UString::String&
 //
 // Return Value:
 //		None
 //
 //==========================================================================
-void ConfigFile::StripCarriageReturn(String &s) const
+void ConfigFile::StripCarriageReturn(UString::String &s) const
 {
 	if (!s.empty() && *s.rbegin() == '\r')
 		s.erase(s.length() - 1);

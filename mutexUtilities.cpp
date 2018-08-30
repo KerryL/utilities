@@ -25,7 +25,7 @@ AccessUpgrader::~AccessUpgrader()
 	sharedLock.lock();
 }
 
-bool AccessManager::TryAccess(const String& key)
+bool AccessManager::TryAccess(const UString::String& key)
 {
 	std::shared_lock<std::shared_mutex> lock(listMutex);
 	auto it(std::find(list.begin(), list.end(), key));
@@ -42,7 +42,7 @@ bool AccessManager::TryAccess(const String& key)
 	return false;
 }
 
-void AccessManager::WaitOn(const String& key)
+void AccessManager::WaitOn(const UString::String& key)
 {
 	std::unique_lock<std::shared_mutex> lock(listMutex);
 	accessFinishedCondition.wait(lock, [key, this]()
@@ -51,7 +51,7 @@ void AccessManager::WaitOn(const String& key)
 	});
 }
 
-void AccessManager::Notify(const String& key)
+void AccessManager::Notify(const UString::String& key)
 {
 	std::lock_guard<std::shared_mutex> lock(listMutex);
 	list.erase(std::find(list.begin(), list.end(), key));
