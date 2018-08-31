@@ -14,6 +14,7 @@
 #include <queue>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 
 #ifdef _WIN32
 // Windows headers
@@ -44,7 +45,7 @@ public:
 	};
 
 #ifdef WIN32
-	typedef unsigned int SocketID;
+	typedef SOCKET SocketID;
 	typedef char DataType;
 #else
 	typedef int SocketID;
@@ -75,6 +76,7 @@ public:
 	
 	bool SetOption(const int &level, const int &option, const DataType* value, const int &size);
 	bool WaitForSocket(const int &timeout, bool* errorOrHangUp = nullptr);
+	bool WaitForClientData(const int &timeout);
 
 	bool Bind(const sockaddr_in &address);
 	static sockaddr_in AssembleAddress(const unsigned short &port, const std::string &target = "");
@@ -128,6 +130,8 @@ private:
 	fd_set clients;
 	fd_set readSocks;
 	SocketID maxSock = 0;
+
+	std::condition_variable clientDataCondition;
 
 	std::map<SocketID, unsigned short> failedSendCount;
 

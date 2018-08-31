@@ -11,6 +11,7 @@
 #include <string.h>
 #include <sstream>
 #include <signal.h>
+#include <chrono>
 
 #ifdef _WIN32
 #define poll WSAPoll
@@ -385,12 +386,42 @@ bool CPPSocket::WaitForSocket(const int &timeout, bool* errorOrHangUp)
 	struct pollfd fds;
 	fds.fd = sock;
 	fds.events = POLLIN;
-	int retVal = poll(&fds, 1, timeout);
+
+	const auto retVal(poll(&fds, 1, timeout));
 	if (retVal == SOCKET_ERROR)
 		outStream << "poll failed:  " << GetLastError() << std::endl;
+
 	if (errorOrHangUp)
 		*errorOrHangUp = (fds.revents & POLLERR) || (fds.revents & POLLHUP);
+
 	return retVal > 0;
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		WaitForClientData
+//
+// Description:		Implements poll() on read for client sockets.
+//
+// Input Arguments:
+//		timeout	= const int& [msec]
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		bool, true if socket is ready for read, false if timeout occured
+//
+//==========================================================================
+bool CPPSocket::WaitForClientData(const int &timeout)
+{
+	std::unique_lock<std::mutex> lock(bufferMutex);
+	clientDataCondition.wait_for(lock, std::chrono::duration<int, std::milli>(timeout), [this]()
+	{
+		return !clientRcvQueue.empty();
+	});
+
+	return !clientRcvQueue.empty();
 }
 
 //==========================================================================
@@ -484,7 +515,7 @@ void CPPSocket::ListenThreadEntry()
 	while (continueListening)
 	{
 		readSocks = clients;
-		if (select(maxSock + 1, &readSocks, NULL, NULL, &timeout) == SOCKET_ERROR)
+		if (select(static_cast<int>(maxSock + 1), &readSocks, NULL, NULL, &timeout) == SOCKET_ERROR)
 		{
 			outStream << "  Failed to select sockets:  " << GetLastError() << std::endl;
 			continue;
@@ -545,14 +576,17 @@ void CPPSocket::HandleClient(SocketID newSock)
 {
 	std::lock_guard<std::mutex> lock(bufferMutex);
 
-	int msgSize = DoReceive(newSock, nullptr);
+	const int msgSize(DoReceive(newSock, nullptr));
 	clientBuffers[newSock].messageSize = msgSize;
 
 	// On disconnect
 	if (msgSize <= 0)
 		DropClient(newSock);
 	else
+	{
 		clientRcvQueue.push(newSock);
+		clientDataCondition.notify_one();
+	}
 }
 
 //==========================================================================
@@ -807,7 +841,7 @@ int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 {
 	if (type == SocketTCPServer)
 	{
-		assert(outSenderAddr == NULL &&
+		assert(outSenderAddr == nullptr &&
 			"Use overload taking SocketID for identifying sender as TCP Server");
 		SocketID dummy;
 		return Receive(dummy);
