@@ -515,7 +515,7 @@ void CPPSocket::ListenThreadEntry()
 	while (continueListening)
 	{
 		readSocks = clients;
-		if (select(static_cast<int>(maxSock + 1), &readSocks, NULL, NULL, &timeout) == SOCKET_ERROR)
+		if (select(static_cast<int>(maxSock + 1), &readSocks, nullptr, nullptr, &timeout) == SOCKET_ERROR)
 		{
 			outStream << "  Failed to select sockets:  " << GetLastError() << std::endl;
 			continue;

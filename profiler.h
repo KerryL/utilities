@@ -109,7 +109,7 @@ public:
 	}
 
 private:
-	typedef std::unordered_map<std::string, std::pair<unsigned long long, unsigned long> > NameTimeMap;
+	typedef std::unordered_map<std::string, std::pair<unsigned long long, unsigned long>> NameTimeMap;
 	typedef std::pair<std::string, unsigned long long> FunctionTimePair;
 
 	static unsigned long long GetTime()
