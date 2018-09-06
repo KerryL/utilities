@@ -13,7 +13,7 @@
 namespace MutexUtilities
 {
 
-AccessUpgrader::AccessUpgrader(std::shared_lock<std::shared_mutex>& sharedLock) : sharedLock(sharedLock)
+AccessUpgrader::AccessUpgrader(std::shared_lock<std::shared_timed_mutex>& sharedLock) : sharedLock(sharedLock)
 {
 	sharedLock.unlock();
 	sharedLock.mutex()->lock();// Exclusive
@@ -27,7 +27,7 @@ AccessUpgrader::~AccessUpgrader()
 
 bool AccessManager::TryAccess(const UString::String& key)
 {
-	std::shared_lock<std::shared_mutex> lock(listMutex);
+	std::shared_lock<std::shared_timed_mutex> lock(listMutex);
 	auto it(std::find(list.begin(), list.end(), key));
 	if (it == list.end())
 	{
@@ -44,7 +44,7 @@ bool AccessManager::TryAccess(const UString::String& key)
 
 void AccessManager::WaitOn(const UString::String& key)
 {
-	std::unique_lock<std::shared_mutex> lock(listMutex);
+	std::unique_lock<std::shared_timed_mutex> lock(listMutex);
 	accessFinishedCondition.wait(lock, [key, this]()
 	{
 		return std::find(list.begin(), list.end(), key) == list.end();
@@ -53,7 +53,7 @@ void AccessManager::WaitOn(const UString::String& key)
 
 void AccessManager::Notify(const UString::String& key)
 {
-	std::lock_guard<std::shared_mutex> lock(listMutex);
+	std::lock_guard<std::shared_timed_mutex> lock(listMutex);
 	list.erase(std::find(list.begin(), list.end(), key));
 	accessFinishedCondition.notify_all();
 }

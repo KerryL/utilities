@@ -53,7 +53,7 @@ bool ConfigFile::ReadConfiguration(const UString::String &fileName)
 
 	outStream << "Reading configuration from '" << fileName << "'" << std::endl;
 
-	UString::IFStream file(fileName.c_str(), std::ios::in);
+	UString::IFStream file(UString::ToNarrowString(fileName).c_str());
 	if (!file.is_open() || !file.good())
 	{
 		outStream << "Unable to open file '" << fileName << "' for input" << std::endl;
