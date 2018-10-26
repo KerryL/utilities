@@ -21,7 +21,7 @@ namespace MutexUtilities
 class AccessUpgrader
 {
 public:
-	AccessUpgrader(std::shared_lock<std::shared_mutex>& sharedLock);
+	explicit AccessUpgrader(std::shared_lock<std::shared_mutex>& sharedLock);
 	~AccessUpgrader();
 
 private:
