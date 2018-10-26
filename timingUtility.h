@@ -25,7 +25,7 @@ public:
 
 	void SetLoopTime(const double& newTimeStep);
 	void TimeLoop();
-	double GetTimeStep() const { return FractionalSeconds(timeStep).count(); };// [sec]
+	double GetTimeStep() const { return FractionalSeconds(timeStep).count(); }// [sec]
 
 	std::string GetTimingStatistics() const;
 

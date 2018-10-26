@@ -304,7 +304,7 @@ bool ConfigFile::WriteConfiguration(const UString::String &fileName,
 			commentCharacter.compare(line.substr(0,1)) != 0)
 		{
 			inLineComment = line.find(commentCharacter);
-			if (inLineComment != UString::::npos)
+			if (inLineComment != UString::String::npos)
 			{
 				comment = line.substr(inLineComment);
 				line = line.substr(0, inLineComment);
@@ -315,7 +315,7 @@ bool ConfigFile::WriteConfiguration(const UString::String &fileName,
 			SplitFieldFromData(line, currentField, data);
 			if (currentField.compare(field) == 0)
 			{
-				StringStream ss;
+				UString::StringStream ss;
 				ss << field << " = " << value;
 				line = ss.str();
 				written = true;
@@ -330,14 +330,15 @@ bool ConfigFile::WriteConfiguration(const UString::String &fileName,
 
 	inFile.close();
 	outFile.close();
-	if (std::remove(fileName.c_str()) == -1)
+	if (std::remove(UString::ToNarrowString(fileName).c_str()) == -1)
 	{
 		outStream << "Failed to delete '" << fileName
 			<< "':  " << std::strerror(errno) << std::endl;
 		return false;
 	}
 
-	if (std::rename(tempFileName.c_str(), fileName.c_str()) == -1)
+	if (std::rename(UString::ToNarrowString(tempFileName).c_str(),
+		UString::ToNarrowString(fileName).c_str()) == -1)
 	{
 		outStream << "Failed to rename '" << tempFileName
 			<< "' to '" << fileName << "':  " << std::strerror(errno) << std::endl;

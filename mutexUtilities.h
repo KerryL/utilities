@@ -21,11 +21,11 @@ namespace MutexUtilities
 class AccessUpgrader
 {
 public:
-	explicit AccessUpgrader(std::shared_lock<std::shared_mutex>& sharedLock);
+	explicit AccessUpgrader(std::shared_lock<std::shared_timed_mutex>& sharedLock);
 	~AccessUpgrader();
 
 private:
-	std::shared_lock<std::shared_mutex>& sharedLock;
+	std::shared_lock<std::shared_timed_mutex>& sharedLock;
 };
 
 // This class is helpful when a multi-threaded process may have two threads
@@ -51,7 +51,7 @@ public:
 
 private:
 	std::vector<UString::String> list;
-	std::shared_mutex listMutex;
+	std::shared_timed_mutex listMutex;
 	std::condition_variable_any accessFinishedCondition;
 
 	void Notify(const UString::String& key);
