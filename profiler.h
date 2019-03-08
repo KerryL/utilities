@@ -82,7 +82,7 @@ public:
 		if (!entryTimes.empty())
 			outStream << "Warning:  Profiler stack is not empty!" << std::endl;
 
-		unsigned int maxFunctionNameLength(0);
+		std::string::size_type maxFunctionNameLength(0);
 		NameTimeMap::iterator it;
 		for (it = frequencies.begin(); it != frequencies.end(); ++it)
 		{
@@ -136,7 +136,7 @@ private:
 	static std::stack<FunctionTimePair> entryTimes;
 	static unsigned long long startTime;
 
-	static std::string RightPadString(const std::string &s, const unsigned int &l, const char c = ' ')
+	static std::string RightPadString(const std::string &s, const std::string::size_type &l, const char c = ' ')
 	{
 		assert(l > s.size());
 		std::string padded(s);
