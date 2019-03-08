@@ -92,7 +92,7 @@ public:
 				stackEmpty = false;
 		}
 
-		if (stackEmpty)
+		if (!stackEmpty)
 			outStream << "Warning:  Profiler stack is not empty!" << std::endl;
 
 		std::string::size_type maxFunctionNameLength(0);
