@@ -8,7 +8,7 @@
 
 #ifdef PROFILE
 
-unsigned long long Profiler::startTime;
+uint64_t Profiler::startTime;
 Profiler::NameTimeMap Profiler::frequencies;
 std::unordered_map<std::thread::id, std::stack<Profiler::FunctionTimePair>> Profiler::entryTimes;
 

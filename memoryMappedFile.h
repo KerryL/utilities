@@ -12,7 +12,7 @@
 
 #ifdef _WIN32
 // Windows headers
-#include "Windows.h"
+#include <Windows.h>
 #else
 #endif// _WIN32
 
@@ -22,17 +22,24 @@ public:
 	MemoryMappedFile(const UString::String& fileName);
 	~MemoryMappedFile();
 	
-	inline bool IsOpenAndGood() const { return fileHandle != INVALID_HANDLE_VALUE && mappingHandle && mappedView; }
+	bool IsOpenAndGood() const;
 	
 	bool ReadNextLine(std::string& line);
 	
 private:
-	HANDLE fileHandle = 0;
+#ifdef _WIN32
+	typedef HANDLE FileHandle;
 	HANDLE mappingHandle = 0;
+#else
+	typedef int FileHandle;
+#endif// _WIN32
+	FileHandle fileHandle = 0;
 	char* mappedView = nullptr;
 
 	uint64_t currentOffset = 0;
 	uint64_t maxSize;
+	
+	void HandleError(const std::string& message);
 };
 
 #endif// MEMORY_MAPPED_FILE_H_
