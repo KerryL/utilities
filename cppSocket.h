@@ -101,6 +101,7 @@ public:
 
 	static std::vector<std::string> GetLocalIPAddress();
 	static std::string GetBestLocalIPAddress(const std::string &destination);
+	static std::string GetBroadcastAddress(const std::string& destination);
 
 private:
 	static const unsigned int maxConnections;
@@ -150,6 +151,9 @@ private:
 
 	static void AddSocketToSet(SocketID socketFD, fd_set &set);
 	static void RemoveSocketFromSet(SocketID socketFD, fd_set &set);
+
+	static bool AddressIsInSubnet(const struct sockaddr_in& address, const struct sockaddr_in& mask, const struct sockaddr_in& test);
+	static std::string ComputeBroadcastAddress(const struct sockaddr_in& address, const struct sockaddr_in& mask);
 };
 
 #endif// CPP_SOCKET_H_

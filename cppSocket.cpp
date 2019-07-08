@@ -14,6 +14,7 @@
 #include <chrono>
 
 #ifdef _WIN32
+#include <WS2tcpip.h>
 #define poll WSAPoll
 #else
 // *nix headers
@@ -1217,6 +1218,68 @@ std::string CPPSocket::GetBestLocalIPAddress(const std::string &destination)
 	}
 
 	return "";
+}
+
+//==========================================================================
+// Class:			CPPSocket
+// Function:		GetBroadcastAddress
+//
+// Description:		Retrieves the most likely broadcast address given the destination
+//					address (and interfaces available on the local machine).
+//
+// Input Arguments:
+//		destination	= const std::string&
+//
+// Output Arguments:
+//		None
+//
+// Return Value:
+//		std::string containing the best broadcast address
+//
+//==========================================================================
+std::string CPPSocket::GetBroadcastAddress(const std::string& destination)
+{
+	// Kludgy way to do this, in my opinion
+	CPPSocket s(SocketUDPClient);
+	if (!s.Create(0, destination))
+		return std::string();
+
+	DWORD bytesOut;
+	INTERFACE_INFO ii[20];
+	memset(&ii, 0, sizeof(ii));
+	if (WSAIoctl(s.sock, SIO_GET_INTERFACE_LIST, nullptr, 0, &ii, sizeof(ii), &bytesOut, nullptr, nullptr) == SOCKET_ERROR)
+	{
+		std::cerr << "Failed to get subnet masks with error " << GetLastError() << '\n';
+		return std::string();
+	}
+
+	struct sockaddr_in destAddress;
+	destAddress.sin_family = AF_INET;
+	destAddress.sin_port = 0;
+	inet_pton(destAddress.sin_family, destination.c_str(), &destAddress.sin_addr);
+	memset(destAddress.sin_zero, 0, sizeof(destAddress.sin_zero));
+
+	const unsigned int interfacesReturned(bytesOut / sizeof(INTERFACE_INFO));
+	for (unsigned int i = 0; i < interfacesReturned; ++i)
+	{
+		if (AddressIsInSubnet(ii[i].iiAddress.AddressIn, ii[i].iiNetmask.AddressIn, destAddress))
+			return ComputeBroadcastAddress(destAddress, ii[i].iiNetmask.AddressIn);
+	}
+
+	return std::string();
+}
+
+bool CPPSocket::AddressIsInSubnet(const struct sockaddr_in& address,
+	const struct sockaddr_in& mask, const struct sockaddr_in& test)
+{
+	return (address.sin_addr.S_un.S_addr & mask.sin_addr.S_un.S_addr) ==
+		(test.sin_addr.S_un.S_addr & mask.sin_addr.S_un.S_addr);
+}
+
+std::string CPPSocket::ComputeBroadcastAddress(const struct sockaddr_in& address, const struct sockaddr_in& mask)
+{
+	const unsigned long broadcastAddress(address.sin_addr.S_un.S_addr | (~mask.sin_addr.S_un.S_addr));
+	return std::string(inet_ntoa(*reinterpret_cast<const IN_ADDR*>(&broadcastAddress)));
 }
 
 //==========================================================================
