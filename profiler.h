@@ -1,7 +1,7 @@
 // File:  profiler.h
 // Date:  4/17/2013
 // Auth:  K. Loux
-// Desc:  Profiler object for analyzing applications.  Note:  This is NOT thread-safe!
+// Desc:  Profiler object for analyzing applications.
 
 /*
 INSTRUCTIONS:
@@ -41,6 +41,8 @@ When you want to disable profiling, just undefine PROFILE.
 #include <utility>
 #include <sstream>
 #include <chrono>
+#include <thread>
+#include <mutex>
 
 #if defined _WIN32
 #define FUNC_NAME __FUNCTION__
@@ -58,18 +60,22 @@ public:
 
 	static void Enter(const char* function)
 	{
-		entryTimes.push(FunctionTimePair(function, GetTime()));
+		std::lock_guard<std::mutex> lock(entryTimesMutex);
+		entryTimes[std::this_thread::get_id()].push(FunctionTimePair(function, GetTime()));
 	}
 
 	static void Exit(const char* function)
 	{
 		// Catch cases where the user may have missed a PROFILER_EXIT macro
-		assert(!entryTimes.empty());
-		assert(entryTimes.top().first.compare(function) == 0);
-		frequencies[function] = std::pair<unsigned long long, unsigned long>(
-				frequencies[function].first + GetTime() - entryTimes.top().second,
+		assert(!entryTimes[std::this_thread::get_id()].empty());
+		assert(entryTimes[std::this_thread::get_id()].top().first.compare(function) == 0);
+		std::lock_guard<std::mutex> fLock(frequenciesMutex);
+		frequencies[function] = std::make_pair(
+				frequencies[function].first + GetTime() - entryTimes[std::this_thread::get_id()].top().second,
 				frequencies[function].second + 1);
-		entryTimes.pop();
+
+		std::lock_guard<std::mutex> lock(entryTimesMutex);
+		entryTimes[std::this_thread::get_id()].pop();
 	}
 
 	static void Print()
@@ -79,10 +85,17 @@ public:
 
 	static void Print(std::ostream& outStream)
 	{
-		if (!entryTimes.empty())
+		bool stackEmpty(true);
+		for (const auto& t : entryTimes)
+		{
+			if (!t.second.empty())
+				stackEmpty = false;
+		}
+
+		if (!stackEmpty)
 			outStream << "Warning:  Profiler stack is not empty!" << std::endl;
 
-		unsigned int maxFunctionNameLength(0);
+		std::string::size_type maxFunctionNameLength(0);
 		NameTimeMap::iterator it;
 		for (it = frequencies.begin(); it != frequencies.end(); ++it)
 		{
@@ -91,7 +104,7 @@ public:
 		}
 		maxFunctionNameLength += 10;
 
-		double totalTime = (double)(GetTime() - startTime);
+		const double totalTime(static_cast<double>(GetTime() - startTime));
 
 		std::string percentColumnHeader("Percent Time    ");
 		std::string callColumnHeader("Calls");
@@ -102,17 +115,17 @@ public:
 
 		for (it = frequencies.begin(); it != frequencies.end(); ++it)
 			outStream << RightPadString(ExtractShortName(it->first), maxFunctionNameLength)
-			<< RightPadString(ToString((double)it->second.first / totalTime * 100.0) + "%", percentColumnHeader.size())
+			<< RightPadString(ToString(it->second.first / totalTime * 100.0) + "%", percentColumnHeader.size())
 			<< it->second.second << '\n';
 
 		outStream << '\n' << std::endl;
 	}
 
 private:
-	typedef std::unordered_map<std::string, std::pair<unsigned long long, unsigned long>> NameTimeMap;
-	typedef std::pair<std::string, unsigned long long> FunctionTimePair;
+	typedef std::unordered_map<std::string, std::pair<uint64_t, uint64_t>> NameTimeMap;
+	typedef std::pair<std::string, uint64_t> FunctionTimePair;
 
-	static unsigned long long GetTime()
+	static uint64_t GetTime()
 	{
 /*#ifdef _WIN32
 		// Below from: http://www.strchr.com/performance_measurements_with_rdtsc
@@ -133,10 +146,13 @@ private:
 	}
 
 	static NameTimeMap frequencies;
-	static std::stack<FunctionTimePair> entryTimes;
-	static unsigned long long startTime;
+	static std::unordered_map<std::thread::id, std::stack<FunctionTimePair>> entryTimes;
+	static uint64_t startTime;
 
-	static std::string RightPadString(const std::string &s, const unsigned int &l, const char c = ' ')
+	static std::mutex entryTimesMutex;
+	static std::mutex frequenciesMutex;
+
+	static std::string RightPadString(const std::string &s, const std::string::size_type &l, const char c = ' ')
 	{
 		assert(l > s.size());
 		std::string padded(s);
