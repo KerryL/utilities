@@ -858,7 +858,7 @@ int CPPSocket::Receive(struct sockaddr_in *outSenderAddr)
 	else if (bytesrcv == 0)
 	{
 		outStream << "  Partner closed connection";
-		if (outSenderAddr)
+		if (outSenderAddr && type != SocketTCPServer && type != SocketTCPClient)
 			outStream << " at " << inet_ntoa(outSenderAddr->sin_addr) << ":" << ntohs(outSenderAddr->sin_port);
 		outStream << std::endl;
 		// Don't send socket error - this is a special case indicating
