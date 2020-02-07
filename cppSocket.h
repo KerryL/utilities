@@ -6,6 +6,9 @@
 #ifndef CPP_SOCKET_H_
 #define CPP_SOCKET_H_
 
+// Utilities headers
+#include "uString.h"
+
 // Standard C++ headers
 #include <string>
 #include <vector>
@@ -54,7 +57,7 @@ public:
 	typedef unsigned char DataType;
 #endif
 
-	CPPSocket(SocketType type = SocketTCPClient, std::ostream &outStream = std::cout);
+	CPPSocket(SocketType type = SocketTCPClient, UString::OStream &outStream = Cout);
 	~CPPSocket();
 
 	bool Create(const unsigned short &port = 0, const std::string &target = "");
@@ -95,7 +98,7 @@ public:
 
 	SocketID GetFileDescriptor() const { return sock; }
 
-	std::string GetErrorString() const { return GetLastError(); }
+	UString::String GetErrorString() const { return GetLastError(); }
 
 	static const unsigned int maxMessageSize;
 
@@ -108,7 +111,7 @@ private:
 	static const unsigned int tcpListenTimeout;// [sec]
 
 	const SocketType type;
-	std::ostream &outStream;
+	UString::OStream &outStream;
 
 	SocketID sock = 0;
 	std::vector<DataType> rcvBuffer;
@@ -117,8 +120,8 @@ private:
 	bool Connect(const sockaddr_in &address);
 	bool EnableAddressReusue();
 
-	static std::string GetTypeString(SocketType type);
-	static std::string GetLastError();
+	static UString::String GetTypeString(SocketType type);
+	static UString::String GetLastError();
 
 	int DoReceive(SocketID sock, struct sockaddr_in *senderAddr);
 	bool TCPServerSend(const DataType* buffer, const int &bufferSize);

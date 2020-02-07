@@ -279,7 +279,7 @@ template <typename T>
 bool ConfigFile::WriteConfiguration(const UString::String &fileName,
 	const UString::String &field, const T &value)
 {
-	UString::IFStream inFile(fileName.c_str(), std::ios::in);
+	UString::IFStream inFile(fileName.c_str());
 	if (!inFile.is_open() || !inFile.good())
 	{
 		outStream << "Failed to open '" << fileName << "'" << std::endl;
@@ -287,7 +287,7 @@ bool ConfigFile::WriteConfiguration(const UString::String &fileName,
 	}
 
 	UString::String tempFileName("tempConfigFile");
-	UString::OFStream outFile(tempFileName.c_str(), std::ios::out);
+	UString::OFStream outFile(tempFileName.c_str());
 	if (!outFile.is_open() || !outFile.good())
 	{
 		outStream << "Failed to open '" << tempFileName << "'" << std::endl;
@@ -352,7 +352,7 @@ bool ConfigFile::WriteConfiguration(const UString::String &fileName,
 // Class:			ConfigFile
 // Function:		GenericReader
 //
-// Description:		Generic UString::-to-type function for reading config data.
+// Description:		Generic string-to-type function for reading config data.
 //
 // Input Arguments:
 //		s	= const UString::String&
@@ -375,7 +375,7 @@ bool ConfigFile::GenericReader(const UString::String &s, T &value)
 // Class:			ConfigFile
 // Function:		EnumReader
 //
-// Description:		Generic UString::-to-type function for reading config data.
+// Description:		Generic string-to-type function for reading config data.
 //
 // Input Arguments:
 //		s	= const UString::String&
@@ -403,7 +403,7 @@ bool ConfigFile::EnumReader(const UString::String &s, T &value)
 // Class:			ConfigFile
 // Function:		VectorReader
 //
-// Description:		Generic UString::-to-type function for reading config data and
+// Description:		Generic string-to-type function for reading config data and
 //					adding each new entry to a vector.
 //
 // Input Arguments:
@@ -431,7 +431,7 @@ bool ConfigFile::VectorReader(const UString::String &s, std::vector<T> &v)
 // Class:			ConfigItem
 // Function:		AssignValue
 //
-// Description:		Assigns the value of the data UString::String to the appropriate
+// Description:		Assigns the value of the data string to the appropriate
 //					dereferenced pointed, based on the this item's type.
 //
 // Input Arguments:

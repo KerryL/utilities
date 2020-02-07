@@ -1,7 +1,7 @@
 // File:  uString.h
 // Date:  3/6/2017
 // Auth:  K. Loux
-// Desc:  UString::String definitions for handling unicode/non-unicode builds.
+// Desc:  String definitions for handling unicode/non-unicode builds.
 
 // Standard C++ headers
 #include <string>
@@ -37,7 +37,7 @@ typedef std::wistringstream IStringStream;
 typedef std::wostream OStream;
 typedef std::wistream IStream;
 typedef std::wregex RegEx;
-}
+}// namespace UString
 
 #else
 
@@ -62,7 +62,7 @@ typedef std::istringstream IStringStream;
 typedef std::ostream OStream;
 typedef std::istream IStream;
 typedef std::regex RegEx;
-}
+}// namespace UString
 
 #endif// UNICODE
 
@@ -127,6 +127,6 @@ inline std::wstring ToWideString(const typename std::enable_if<std::is_same<Stri
 }
 ////////////////////////////////////////////
 
-}// UString
+}// namespace UString
 
 #endif// U_STRING_H_

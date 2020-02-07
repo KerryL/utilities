@@ -109,7 +109,7 @@ void ConfigFile::AddConfigItem(const UString::String &key, bool& data)
 // Class:			ConfigFile
 // Function:		StringReader
 //
-// Description:		Reads the specified data into another UString::.
+// Description:		Reads the specified data into another string.
 //
 // Input Arguments:
 //		data	= const UString::String&
@@ -131,7 +131,7 @@ bool ConfigFile::StringReader(const UString::String &data, std::string &value)
 // Class:			ConfigFile
 // Function:		StringReader
 //
-// Description:		Reads the specified data into another UString::.
+// Description:		Reads the specified data into another string.
 //
 // Input Arguments:
 //		data	= const UString::String&
@@ -153,7 +153,7 @@ bool ConfigFile::StringReader(const UString::String &data, std::wstring &value)
 // Class:			ConfigFile
 // Function:		StringVectorReader
 //
-// Description:		Reads the specified data into another UString::.
+// Description:		Reads the specified data into a string vector.
 //
 // Input Arguments:
 //		data	= const UString::String&
@@ -178,7 +178,7 @@ bool ConfigFile::StringVectorReader(const UString::String &data, std::vector<std
 // Class:			ConfigFile
 // Function:		StringVectorReader
 //
-// Description:		Reads the specified data into another UString::.
+// Description:		Reads the specified data into s string vector.
 //
 // Input Arguments:
 //		data	= const UString::String&
@@ -307,7 +307,7 @@ bool ConfigFile::BoolReader(const UString::String &data, bool &value)
 // Class:			ConfigFile
 // Function:		StripCarriageReturn
 //
-// Description:		Removes the '\r' from the end of the UString::, in case
+// Description:		Removes the '\r' from the end of the string, in case
 //					we're reading Windows-generated files on a Linux system.
 //
 // Input Arguments:

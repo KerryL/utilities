@@ -16,6 +16,7 @@
 #ifdef _WIN32
 #include <WS2tcpip.h>
 #define poll WSAPoll
+#include <WS2tcpip.h>
 #else
 // *nix headers
 #include <sys/socket.h>
@@ -71,7 +72,7 @@ const unsigned int CPPSocket::tcpListenTimeout = 5;// [sec]
 //		None
 //
 //==========================================================================
-CPPSocket::CPPSocket(SocketType type, std::ostream& outStream) : type(type), outStream(outStream)
+CPPSocket::CPPSocket(SocketType type, UString::OStream& outStream) : type(type), outStream(outStream)
 {
 	FD_ZERO(&clients);
 	FD_ZERO(&readSocks);
@@ -608,13 +609,22 @@ void CPPSocket::HandleClient(SocketID newSock)
 //==========================================================================
 bool CPPSocket::Connect(const sockaddr_in &address)
 {
+#ifdef _WIN32
+	UString::Char ipString[INET_ADDRSTRLEN];
+	sockaddr_in tempAddr(address);// Can't pass const to InetNtop
+	InetNtop(AF_INET, &(tempAddr.sin_addr), ipString, INET_ADDRSTRLEN);
+#else
+	char ipString[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &(address.sin_addr), ipString, INET_ADDRSTRLEN);
+#endif
+
 	if (connect(sock, (struct sockaddr*)&address, sizeof(address)) < 0)
 	{
-		outStream << "  Connect to " << ntohs(address.sin_port) << " failed:  " << GetLastError() << std::endl;
+		outStream << "  Connect to " << ipString << ":" << ntohs(address.sin_port) << " failed:  " << GetLastError() << std::endl;
 		return false;
 	}
 
-	outStream << "  Socket " << sock << " on port " << ntohs(address.sin_port) << " successfully connected" << std::endl;
+	outStream << "  Socket " << sock << " successfully connected to " << ipString << ":" << ntohs(address.sin_port) << std::endl;
 
 	return true;
 }
@@ -1143,7 +1153,7 @@ std::vector<std::string> CPPSocket::GetLocalIPAddress()
 	// Get the host name
 	if (gethostname(host, sizeof(host)) == SOCKET_ERROR)
 	{
-		/*outStream*/std::cerr << "  Error getting host name: " << GetLastError() << std::endl;
+		/*outStream*/Cerr << "  Error getting host name: " << GetLastError() << std::endl;
 		return ips;
 	}
 
@@ -1151,7 +1161,7 @@ std::vector<std::string> CPPSocket::GetLocalIPAddress()
 
 	if (hostEntity == 0)
 	{
-		/*outStream*/std::cerr << "  Bad host lookup!" << std::endl;
+		/*outStream*/Cerr << "  Bad host lookup!" << std::endl;
 		return ips;
 	}
 
@@ -1249,7 +1259,7 @@ std::string CPPSocket::GetBroadcastAddress(const std::string& destination)
 	memset(&ii, 0, sizeof(ii));
 	if (WSAIoctl(s.sock, SIO_GET_INTERFACE_LIST, nullptr, 0, &ii, sizeof(ii), &bytesOut, nullptr, nullptr) == SOCKET_ERROR)
 	{
-		std::cerr << "Failed to get subnet masks with error " << GetLastError() << '\n';
+		Cerr << "Failed to get subnet masks with error " << GetLastError() << '\n';
 		return std::string();
 	}
 
@@ -1302,18 +1312,18 @@ std::string CPPSocket::ComputeBroadcastAddress(const struct sockaddr_in& address
 #pragma warning (push)
 #pragma warning (disable:4715)
 #endif
-std::string CPPSocket::GetTypeString(SocketType type)
+UString::String CPPSocket::GetTypeString(SocketType type)
 {
 	if (type == SocketTCPServer)
-		return "TCP Server";
+		return _T("TCP Server");
 	else if (type == SocketTCPClient)
-		return "TCP Client";
+		return _T("TCP Client");
 	else if (type == SocketUDPServer)
-		return "UDP Server";
+		return _T("UDP Server");
 	else if (type == SocketUDPClient)
-		return "UDP Client";
+		return _T("UDP Client");
 	else if (type == SocketICMP)
-		return "IMCP";
+		return _T("IMCP");
 	else
 		assert(false);
 }
@@ -1338,11 +1348,11 @@ std::string CPPSocket::GetTypeString(SocketType type)
 //		string containing the error description
 //
 //==========================================================================
-std::string CPPSocket::GetLastError()
+UString::String CPPSocket::GetLastError()
 {
-	std::stringstream errorString;
+	UString::StringStream errorString;
 #ifdef WIN32
-	errorString << "(" << WSAGetLastError() << ")";
+	errorString << _T("(") << WSAGetLastError() << _T(")");
 #else
 	errorString << "(" << errno << ") " << strerror(errno);
 #endif
