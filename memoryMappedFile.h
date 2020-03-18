@@ -25,6 +25,7 @@ public:
 	bool IsOpenAndGood() const;
 	
 	bool ReadNextLine(std::string& line);
+	uint64_t GetCurrentOffset() const { return currentOffset; }
 	
 private:
 #ifdef _WIN32
