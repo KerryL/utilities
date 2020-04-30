@@ -28,6 +28,11 @@ public:
 		: outStream(outStream) {}
 	virtual ~ConfigFile() = default;
 
+	ConfigFile(const ConfigFile&) = delete;
+	ConfigFile& operator=(const ConfigFile&) = delete;
+	ConfigFile(const ConfigFile&&) = delete;
+	ConfigFile& operator=(const ConfigFile&&) = delete;
+
 	bool ReadConfiguration(const UString::String &fileName);
 	template <typename T>
 	bool WriteConfiguration(const UString::String &fileName,
