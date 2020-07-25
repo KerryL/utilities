@@ -1249,7 +1249,8 @@ std::string CPPSocket::GetBestLocalIPAddress(const std::string &destination)
 //==========================================================================
 std::string CPPSocket::GetBroadcastAddress(const std::string& destination)
 {
-	// Kludgy way to do this, in my opinion
+#ifdef WIN32
+	// Kludgy way to do this
 	CPPSocket s(SocketUDPClient);
 	if (!s.Create(0, destination))
 		return std::string();
@@ -1275,6 +1276,8 @@ std::string CPPSocket::GetBroadcastAddress(const std::string& destination)
 		if (AddressIsInSubnet(ii[i].iiAddress.AddressIn, ii[i].iiNetmask.AddressIn, destAddress))
 			return ComputeBroadcastAddress(destAddress, ii[i].iiNetmask.AddressIn);
 	}
+// TODO:  Implement portable solution
+#endif
 
 	return std::string();
 }
@@ -1282,14 +1285,24 @@ std::string CPPSocket::GetBroadcastAddress(const std::string& destination)
 bool CPPSocket::AddressIsInSubnet(const struct sockaddr_in& address,
 	const struct sockaddr_in& mask, const struct sockaddr_in& test)
 {
+#ifdef WIN32
 	return (address.sin_addr.S_un.S_addr & mask.sin_addr.S_un.S_addr) ==
 		(test.sin_addr.S_un.S_addr & mask.sin_addr.S_un.S_addr);
+// TODO:  Implement portable solution
+#else
+	return false;
+#endif
 }
 
 std::string CPPSocket::ComputeBroadcastAddress(const struct sockaddr_in& address, const struct sockaddr_in& mask)
 {
+#ifdef WIN32
 	const unsigned long broadcastAddress(address.sin_addr.S_un.S_addr | (~mask.sin_addr.S_un.S_addr));
 	return std::string(inet_ntoa(*reinterpret_cast<const IN_ADDR*>(&broadcastAddress)));
+// TODO:  Implement portable solution
+#else
+	return std::string();
+#endif
 }
 
 //==========================================================================
