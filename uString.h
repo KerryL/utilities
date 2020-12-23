@@ -37,6 +37,7 @@ typedef std::wistringstream IStringStream;
 typedef std::wostream OStream;
 typedef std::wistream IStream;
 typedef std::wregex RegEx;
+typedef std::wstringbuf StringBuf;
 }// namespace UString
 
 #else
@@ -62,6 +63,7 @@ typedef std::istringstream IStringStream;
 typedef std::ostream OStream;
 typedef std::istream IStream;
 typedef std::regex RegEx;
+typedef std::stringbuf StringBuf;
 }// namespace UString
 
 #endif// UNICODE
