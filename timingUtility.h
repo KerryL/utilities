@@ -7,6 +7,9 @@
 #ifndef TIMING_UTILITY_H_
 #define TIMING_UTILITY_H_
 
+// Local headers
+#include "uString.h"
+
 // Standard C/C++ headers
 #include <string>
 #include <iostream>
@@ -21,7 +24,7 @@ public:
 	typedef std::chrono::steady_clock Clock;
 	typedef std::chrono::duration<double> FractionalSeconds;
 
-	TimingUtility(const double& newTimeStep, const double& warningThreshold = 1.01, std::ostream &outStream = std::cout);
+	TimingUtility(const double& newTimeStep, const double& warningThreshold = 1.01, UString::OStream &outStream = Cout);
 
 	void SetLoopTime(const double& newTimeStep);
 	void TimeLoop();
@@ -33,16 +36,16 @@ public:
 
 private:
 	const double warningThreshold;
-	std::ostream &outStream;
+	UString::OStream &outStream;
 
 	Clock::duration timeStep, elapsed = std::chrono::seconds(0);
 	Clock::time_point lastLoopTime;
 
 	// For timing statistics
 	void UpdateTimingStatistics();
-	std::string MakeColumn(double value, unsigned int columnWidth) const;
-	std::string MakeColumn(Clock::duration value, unsigned int columnWidth) const;
-	std::string MakeColumn(std::string s, unsigned int columnWidth, char pad = ' ') const;
+	UString::String MakeColumn(double value, unsigned int columnWidth) const;
+	UString::String MakeColumn(Clock::duration value, unsigned int columnWidth) const;
+	UString::String MakeColumn(UString::String s, unsigned int columnWidth, char pad = ' ') const;
 
 	unsigned int currentIndex;
 	std::map<Clock::duration, unsigned int> stepIndices;

@@ -31,7 +31,7 @@
 // Input Arguments:
 //		newTimeStep			= const double& [sec]
 //		warningThreshold	= const double& [%]
-//		outStream			= std::ostream&
+//		outStream			= UString::OStream&
 //
 // Output Arguments:
 //		None
@@ -41,7 +41,7 @@
 //
 //==========================================================================
 TimingUtility::TimingUtility(const double& newTimeStep, const double& warningThreshold,
-	std::ostream &outStream) : warningThreshold(warningThreshold), outStream(outStream)
+	UString::OStream &outStream) : warningThreshold(warningThreshold), outStream(outStream)
 {
 	SetLoopTime(newTimeStep);
 }
@@ -195,16 +195,15 @@ void TimingUtility::UpdateTimingStatistics()
 //		None
 //
 // Return Value:
-//		std::string
+//		UString::String
 //
 //==========================================================================
-std::string TimingUtility::GetTimingStatistics() const
+UString::String TimingUtility::GetTimingStatistics() const
 {
-	unsigned int i;
 	std::vector<double> timeAtStep;
 	double totalTime(0.0);// [sec]
 	auto it(stepIndices.begin());
-	for (i = 0; i < counts.size(); i++)
+	for (unsigned int i = 0; i < counts.size(); i++)
 	{
 		timeAtStep.push_back(FractionalSeconds(it->first).count() * counts[it->second]);
 		totalTime += timeAtStep[i];
@@ -213,9 +212,9 @@ std::string TimingUtility::GetTimingStatistics() const
 
 	const unsigned int titleColumnWidth(24), dataColumnWidth(12);
 
-	std::stringstream ss;
+	UString::OStringStream ss;
 	it = stepIndices.begin();
-	for (i = 0; i < counts.size(); i++)
+	for (unsigned int i = 0; i < counts.size(); i++)
 	{
 		ss << "Time step = " << FractionalSeconds(it->first).count() <<
 			" sec (" << timeAtStep[i] / totalTime * 100.0 << "% of total loop time)" << std::endl;
@@ -255,12 +254,12 @@ std::string TimingUtility::GetTimingStatistics() const
 //		None
 //
 // Return Value:
-//		std::string
+//		UString::String
 //
 //==========================================================================
-std::string TimingUtility::MakeColumn(double value, unsigned int columnWidth) const
+UString::String TimingUtility::MakeColumn(double value, unsigned int columnWidth) const
 {
-	std::stringstream ss;
+	UString::OStringStream ss;
 	ss.precision(6);
 	ss << std::fixed << value;
 	return MakeColumn(ss.str(), columnWidth);
@@ -273,7 +272,7 @@ std::string TimingUtility::MakeColumn(double value, unsigned int columnWidth) co
 // Description:		Formats the argument into a fixed-width right-padded string.
 //
 // Input Arguments:
-//		s			= std::string
+//		s			= UString::String
 //		columnWidth	= unsigned int
 //		pad			= char
 //
@@ -281,10 +280,10 @@ std::string TimingUtility::MakeColumn(double value, unsigned int columnWidth) co
 //		None
 //
 // Return Value:
-//		std::string
+//		UString::String
 //
 //==========================================================================
-std::string TimingUtility::MakeColumn(std::string s, unsigned int columnWidth, char pad) const
+UString::String TimingUtility::MakeColumn(UString::String s, unsigned int columnWidth, char pad) const
 {
 	if (s.length() < columnWidth)
 		s.append(std::string(columnWidth - s.length(), pad));
@@ -307,10 +306,10 @@ std::string TimingUtility::MakeColumn(std::string s, unsigned int columnWidth, c
 //		None
 //
 // Return Value:
-//		std::string
+//		UString::String
 //
 //==========================================================================
-std::string TimingUtility::MakeColumn(Clock::duration value, unsigned int columnWidth) const
+UString::String TimingUtility::MakeColumn(Clock::duration value, unsigned int columnWidth) const
 {
 	return MakeColumn(FractionalSeconds(value).count(), columnWidth);
 }
