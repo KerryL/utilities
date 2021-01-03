@@ -219,14 +219,19 @@ void CPPSocket::Destroy()
 	const int shutdownHow(SHUT_RDWR);
 #endif
 
-	if (shutdown(sock, shutdownHow) != 0)// NOTE:  Winsock error 10057 "socket not connected" is normal here, if the connection was never established (TCP only)
-		outStream << "Failed to shut down socket " << sock << ":  " << GetErrorString() << std::endl;
+	if (sock != INVALID_SOCKET)
+	{
+		if (shutdown(sock, shutdownHow) != 0)// NOTE:  Winsock error 10057 "socket not connected" is normal here, if the connection was never established (TCP only)
+			outStream << "Failed to shut down socket " << sock << ":  " << GetErrorString() << std::endl;
+	}
 
 #ifdef WIN32
-	closesocket(sock);
+	if (sock != INVALID_SOCKET)
+		closesocket(sock);
 	WSACleanup();
 #else
-	close(sock);
+	if (sock != INVALID_SOCKET)
+		close(sock);
 #endif
 	outStream << "  Socket " << sock << " has been destroyed" << std::endl;
 }
