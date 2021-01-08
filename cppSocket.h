@@ -113,7 +113,7 @@ private:
 	const SocketType type;
 	UString::OStream &outStream;
 
-	SocketID sock = INVALID_SOCKET;
+	SocketID sock = SOCKET_ERROR;
 	std::vector<DataType> rcvBuffer;
 
 	bool Listen();
