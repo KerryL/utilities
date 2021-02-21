@@ -27,10 +27,6 @@
 #include <netdb.h>
 #include <poll.h>
 #include <ifaddrs.h>
-
-#ifndef INVALID_SOCKET
-#define INVALID_SOCKET -1
-#endif// INVALID_SOCKET
 #endif// _WIN32
 
 // Local headers

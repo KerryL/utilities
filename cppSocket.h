@@ -32,6 +32,7 @@
 // *nix headers
 #include <sys/select.h>
 static const int SOCKET_ERROR = -1;
+static const int INVALID_SOCKET = -1;
 #endif
 
 // Forward declarations
